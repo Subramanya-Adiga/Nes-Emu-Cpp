@@ -1,153 +1,862 @@
 #include "nes_cpu.h"
+#include "nes_bus.h"
 
 namespace nes_emu {
 
-void nes_cpu::clock() noexcept {}
+void nes_cpu::clock() noexcept {
+  if (cpu_cycles == 0) {
 
-void nes_cpu::reset() noexcept {}
+    m_opcode = m_get_instruction(read(pc));
+    m_set_flags(cpu_flags::Unused, true);
 
-std::vector<std::pair<uint16_t, std::string_view>>
-nes_cpu::disassemble() const noexcept {
-  return std::vector<std::pair<uint16_t, std::string_view>>();
+    pc++;
+    cpu_cycles = m_opcode.cycles;
+
+    auto clk1 = (this->*m_opcode.address_mode)();
+    auto clk2 = (this->*m_opcode.function)();
+
+    cpu_cycles += (clk1 & clk2);
+
+    m_set_flags(cpu_flags::Unused, true);
+  }
+  cpu_cycles--;
 }
 
-uint8_t nes_cpu::m_fetch_data() noexcept { return 0; }
+void nes_cpu::reset() noexcept {
+  m_addr_abs = 0xFFFC;
+
+  uint16_t lo = read(m_addr_abs + 0);
+  uint16_t hi = read(m_addr_abs + 1);
+
+  pc = (hi << 8) | lo;
+
+  a = 0;
+  x = 0;
+  y = 0;
+
+  stack_p = 0xFD;
+  status = 0x00 | cpu_flags::Unused;
+
+  m_addr_abs = 0;
+  m_addr_rel = 0;
+
+  cpu_cycles = 8;
+}
+
+void nes_cpu::irq() noexcept {
+  if (m_get_flags(cpu_flags::IntruptDisable) == 0) {
+
+    write(0x0100 + stack_p, (pc >> 8) & 0x00FF);
+    stack_p--;
+    write(0x0100 + stack_p, pc & 0x00FF);
+    stack_p--;
+
+    // Then Push the status register to the stack
+    m_set_flags(cpu_flags::Break, false);
+    m_set_flags(cpu_flags::Unused, true);
+    m_set_flags(cpu_flags::IntruptDisable, true);
+    write(0x0100 + stack_p, status);
+    stack_p--;
+
+    m_addr_abs = 0xFFFE;
+    uint16_t lo = read(m_addr_abs + 0);
+    uint16_t hi = read(m_addr_abs + 1);
+    pc = (hi << 8) | lo;
+
+    cpu_cycles = 7;
+  }
+}
+
+void nes_cpu::nmi() noexcept {
+  write(0x0100 + stack_p, (pc >> 8) & 0x00FF);
+  stack_p--;
+  write(0x0100 + stack_p, pc & 0x00FF);
+  stack_p--;
+
+  // Then Push the status register to the stack
+  m_set_flags(cpu_flags::Break, false);
+  m_set_flags(cpu_flags::Unused, true);
+  m_set_flags(cpu_flags::IntruptDisable, true);
+  write(0x0100 + stack_p, status);
+  stack_p--;
+
+  m_addr_abs = 0xFFFA;
+  uint16_t lo = read(m_addr_abs + 0);
+  uint16_t hi = read(m_addr_abs + 1);
+  pc = (hi << 8) | lo;
+
+  cpu_cycles = 8;
+}
+
+void nes_cpu::connect_to_bus(nes_bus *bus) noexcept { m_bus = bus; }
+
+bool nes_cpu::complete() const noexcept { return (cpu_cycles == 0); }
+
+std::map<uint16_t, std::string>
+nes_cpu::disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept {
+  uint32_t addr = addr_start;
+  uint8_t value = 0x00;
+  uint8_t lo = 0x00;
+  uint8_t hi = 0x00;
+  std::map<uint16_t, std::string> mapLines;
+  uint16_t line_addr = 0;
+
+  // A convenient utility to convert variables into
+  // hex strings because "modern C++"'s method with
+  // streams is atrocious
+  auto hex = [](uint32_t n, uint8_t d) {
+    std::string s(d, '0');
+    for (int i = d - 1; i >= 0; i--, n >>= 4)
+      s[i] = "0123456789ABCDEF"[n & 0xF];
+    return s;
+  };
+
+  // Starting at the specified address we read an instruction
+  // byte, which in turn yields information from the lookup table
+  // as to how many additional bytes we need to read and what the
+  // addressing mode is. I need this info to assemble human readable
+  // syntax, which is different depending upon the addressing mode
+
+  // As the instruction is decoded, a std::string is assembled
+  // with the readable output
+  while (addr <= (uint32_t)addr_stop) {
+    line_addr = addr;
+
+    // Prefix line with instruction address
+    std::string sInst = "$" + hex(addr, 4) + ": ";
+
+    // Read instruction, and get its readable name
+    auto opcode = m_get_instruction(m_bus->read(addr));
+    addr++;
+    sInst += opcode.name + std::string(" ");
+
+    // Get oprands from desired locations, and form the
+    // instruction based upon its addressing mode. These
+    // routines mimmick the actual fetch routine of the
+    // 6502 in order to get accurate data as part of the
+    // instruction
+    if (opcode.address_mode == &nes_cpu::imp) {
+      sInst += " {IMP}";
+    } else if (opcode.address_mode == &nes_cpu::imm) {
+      value = m_bus->read(addr);
+      addr++;
+      sInst += "#$" + hex(value, 2) + " {IMM}";
+    } else if (opcode.address_mode == &nes_cpu::zp0) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = 0x00;
+      sInst += "$" + hex(lo, 2) + " {ZP0}";
+    } else if (opcode.address_mode == &nes_cpu::zpx) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = 0x00;
+      sInst += "$" + hex(lo, 2) + ", X {ZPX}";
+    } else if (opcode.address_mode == &nes_cpu::zpy) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = 0x00;
+      sInst += "$" + hex(lo, 2) + ", Y {ZPY}";
+    } else if (opcode.address_mode == &nes_cpu::izx) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = 0x00;
+      sInst += "($" + hex(lo, 2) + ", X) {IZX}";
+    } else if (opcode.address_mode == &nes_cpu::izy) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = 0x00;
+      sInst += "($" + hex(lo, 2) + "), Y {IZY}";
+    } else if (opcode.address_mode == &nes_cpu::abs) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = m_bus->read(addr);
+      addr++;
+      sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + " {ABS}";
+    } else if (opcode.address_mode == &nes_cpu::azy) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = m_bus->read(addr);
+      addr++;
+      sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", X {ABX}";
+    } else if (opcode.address_mode == &nes_cpu::azy) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = m_bus->read(addr);
+      addr++;
+      sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", Y {ABY}";
+    } else if (opcode.address_mode == &nes_cpu::ind) {
+      lo = m_bus->read(addr);
+      addr++;
+      hi = m_bus->read(addr);
+      addr++;
+      sInst += "($" + hex((uint16_t)(hi << 8) | lo, 4) + ") {IND}";
+    } else if (opcode.address_mode == &nes_cpu::rel) {
+      value = m_bus->read(addr);
+      addr++;
+      sInst += "$" + hex(value, 2) + " [$" + hex(addr + value, 4) + "] {REL}";
+    }
+
+    // Add the formed string to a std::map, using the instruction's
+    // address as the key. This makes it convenient to look for later
+    // as the instructions are variable in length, so a straight up
+    // incremental index is not sufficient.
+    mapLines[line_addr] = sInst;
+  }
+
+  return mapLines;
+}
+
+uint8_t nes_cpu::m_fetch_data() noexcept {
+  if (!(m_opcode.address_mode == &nes_cpu::imp)) {
+    return read(m_addr_abs);
+  }
+  return 0;
+}
+
+uint8_t nes_cpu::read(uint16_t addr) noexcept { return m_bus->read(addr); }
+
+void nes_cpu::write(uint16_t addr, uint8_t data) noexcept {
+  m_bus->write(addr, data);
+}
+
+void nes_cpu::m_set_flags(cpu_flags flags, bool cond) noexcept {
+  if (cond) {
+    status |= flags;
+  } else {
+    status &= ~flags;
+  }
+}
+
+uint8_t nes_cpu::m_get_flags(cpu_flags flags) const noexcept {
+  return ((status & flags) > 0) ? 1 : 0;
+}
 
 uint8_t nes_cpu::nop() noexcept { return 0; }
 
-uint8_t nes_cpu::adc() noexcept { return 0; }
+uint8_t nes_cpu::adc() noexcept {
+  auto fet = m_fetch_data();
 
-uint8_t nes_cpu::and_() noexcept { return 0; }
+  uint16_t tmp = static_cast<uint16_t>(a) + static_cast<uint16_t>(fet) +
+                 static_cast<uint16_t>(m_get_flags(Carry));
 
-uint8_t nes_cpu::asl() noexcept { return 0; }
+  m_set_flags(Carry, tmp > 255);
 
-uint8_t nes_cpu::bcc() noexcept { return 0; }
+  m_set_flags(Zero, (tmp & 0x00FF) == 0);
 
-uint8_t nes_cpu::bcs() noexcept { return 0; }
+  m_set_flags(Overflow,
+              (~(static_cast<uint16_t>(a) ^
+                 (static_cast<uint16_t>(fet) &
+                  (static_cast<uint16_t>(a) ^ static_cast<uint16_t>(tmp)))) &
+               0x0080) != 0);
 
-uint8_t nes_cpu::beq() noexcept { return 0; }
+  m_set_flags(Negative, (tmp & 0x80) != 0);
 
-uint8_t nes_cpu::bit() noexcept { return 0; }
+  a = tmp & 0x00FF;
 
-uint8_t nes_cpu::bmi() noexcept { return 0; }
+  return 1;
+}
 
-uint8_t nes_cpu::bne() noexcept { return 0; }
+uint8_t nes_cpu::and_() noexcept {
+  a = a & m_fetch_data();
+  m_set_flags(Negative, (a & 0x80) != 0);
+  m_set_flags(Zero, a == 0x00);
+  return 1;
+}
 
-uint8_t nes_cpu::bpl() noexcept { return 0; }
+uint8_t nes_cpu::asl() noexcept {
+  auto fet = m_fetch_data();
+  uint16_t tmp = static_cast<uint16_t>(fet) << 1;
+  m_set_flags(Carry, (tmp & 0xFF00) > 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x00);
+  m_set_flags(Negative, (tmp & 0x80) != 0);
+  if (m_opcode.address_mode == &nes_cpu::imp) {
+    a = tmp & 0x00FF;
+  } else {
+    write(m_addr_abs, tmp & 0x00FF);
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::brk() noexcept { return 0; }
+uint8_t nes_cpu::bcc() noexcept {
+  if (m_get_flags(Carry) == 0) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
 
-uint8_t nes_cpu::bvc() noexcept { return 0; }
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::bvs() noexcept { return 0; }
+uint8_t nes_cpu::bcs() noexcept {
+  if (m_get_flags(Carry) == 1) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
 
-uint8_t nes_cpu::clc() noexcept { return 0; }
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::cld() noexcept { return 0; }
+uint8_t nes_cpu::beq() noexcept {
+  if (m_get_flags(Zero) == 1) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
 
-uint8_t nes_cpu::cli() noexcept { return 0; }
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::clv() noexcept { return 0; }
+uint8_t nes_cpu::bit() noexcept {
+  auto fet = m_fetch_data();
+  uint16_t tmp = a & fet;
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x00);
+  m_set_flags(Negative, (fet & (1 << 7)) != 0);
+  m_set_flags(Overflow, (fet & (1 << 6)) != 0);
+  return 0;
+}
 
-uint8_t nes_cpu::cmp() noexcept { return 0; }
+uint8_t nes_cpu::bmi() noexcept {
+  if (m_get_flags(Negative) == 1) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
 
-uint8_t nes_cpu::cpx() noexcept { return 0; }
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::cpy() noexcept { return 0; }
+uint8_t nes_cpu::bne() noexcept {
+  if (m_get_flags(Zero) == 0) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
 
-uint8_t nes_cpu::dec() noexcept { return 0; }
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::dex() noexcept { return 0; }
+uint8_t nes_cpu::bpl() noexcept {
+  if (m_get_flags(Negative) == 0) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
 
-uint8_t nes_cpu::dey() noexcept { return 0; }
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::eor() noexcept { return 0; }
+uint8_t nes_cpu::brk() noexcept {
+  pc++;
 
-uint8_t nes_cpu::inc() noexcept { return 0; }
+  m_set_flags(IntruptDisable, true);
+  write(0x0100 + stack_p, (pc >> 8) & 0x00FF);
+  stack_p--;
+  write(0x0100 + stack_p, pc & 0x00FF);
+  stack_p--;
 
-uint8_t nes_cpu::inx() noexcept { return 0; }
+  m_set_flags(Break, 1);
+  write(0x0100 + stack_p, status);
+  stack_p--;
+  m_set_flags(Break, 0);
 
-uint8_t nes_cpu::iny() noexcept { return 0; }
+  pc = static_cast<uint16_t>(read(0xFFFE)) |
+       (static_cast<uint16_t>(read(0xFFFF)) << 8);
+  return 0;
+}
 
-uint8_t nes_cpu::jmp() noexcept { return 0; }
+uint8_t nes_cpu::bvc() noexcept {
+  if (m_get_flags(Overflow) == 0) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
 
-uint8_t nes_cpu::jsr() noexcept { return 0; }
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::lda() noexcept { return 0; }
+uint8_t nes_cpu::bvs() noexcept {
+  if (m_get_flags(Overflow) == 0) {
+    cpu_cycles++;
+    m_addr_abs = pc + m_addr_rel;
+    if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
+      cpu_cycles++;
+    }
+    pc = m_addr_abs;
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::ldx() noexcept { return 0; }
+uint8_t nes_cpu::clc() noexcept {
+  m_set_flags(cpu_flags::Carry, false);
+  return 0;
+}
 
-uint8_t nes_cpu::ldy() noexcept { return 0; }
+uint8_t nes_cpu::cld() noexcept {
+  m_set_flags(cpu_flags::Decimal, false);
+  return 0;
+}
 
-uint8_t nes_cpu::lsr() noexcept { return 0; }
+uint8_t nes_cpu::cli() noexcept {
+  m_set_flags(cpu_flags::IntruptDisable, false);
+  return 0;
+}
 
-uint8_t nes_cpu::ora() noexcept { return 0; }
+uint8_t nes_cpu::clv() noexcept {
+  m_set_flags(cpu_flags::Overflow, false);
+  return 0;
+}
 
-uint8_t nes_cpu::pha() noexcept { return 0; }
+uint8_t nes_cpu::cmp() noexcept {
+  uint16_t data = m_fetch_data();
+  uint16_t tmp = static_cast<uint16_t>(a) - data;
+  m_set_flags(Carry, a >= data);
+  m_set_flags(Negative, (tmp & 0x00FF) != 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  return 1;
+}
 
-uint8_t nes_cpu::php() noexcept { return 0; }
+uint8_t nes_cpu::cpx() noexcept {
+  uint16_t data = m_fetch_data();
+  uint16_t tmp = static_cast<uint16_t>(x) - data;
+  m_set_flags(Carry, x >= data);
+  m_set_flags(Negative, (tmp & 0x00FF) != 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  return 0;
+}
 
-uint8_t nes_cpu::pla() noexcept { return 0; }
+uint8_t nes_cpu::cpy() noexcept {
+  uint16_t data = m_fetch_data();
+  uint16_t tmp = static_cast<uint16_t>(y) - data;
+  m_set_flags(Carry, y >= data);
+  m_set_flags(Negative, (tmp & 0x00FF) != 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  return 0;
+}
 
-uint8_t nes_cpu::plp() noexcept { return 0; }
+uint8_t nes_cpu::dec() noexcept {
+  auto tmp = m_fetch_data();
+  tmp--;
+  write(m_addr_abs, tmp & 0x00FF);
+  m_set_flags(Negative, (tmp & 0x00FF) != 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  return 0;
+}
 
-uint8_t nes_cpu::rol() noexcept { return 0; }
+uint8_t nes_cpu::dex() noexcept {
+  x--;
+  m_set_flags(Negative, (x & 0x80) != 0);
+  m_set_flags(Zero, x == 0x00);
+  return 0;
+}
 
-uint8_t nes_cpu::ror() noexcept { return 0; }
+uint8_t nes_cpu::dey() noexcept {
+  y--;
+  m_set_flags(Negative, (y & 0x80) != 0);
+  m_set_flags(Zero, y == 0x00);
+  return 0;
+}
 
-uint8_t nes_cpu::rti() noexcept { return 0; }
+uint8_t nes_cpu::eor() noexcept {
+  a = a ^ m_fetch_data();
+  m_set_flags(Negative, (a & 0x80) != 0);
+  m_set_flags(Zero, a == 0x00);
+  return 0;
+}
 
-uint8_t nes_cpu::rts() noexcept { return 0; }
+uint8_t nes_cpu::inc() noexcept {
+  auto tmp = m_fetch_data();
+  tmp++;
+  write(m_addr_abs, tmp & 0x00FF);
+  m_set_flags(Negative, (tmp & 0x00FF) != 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  return 0;
+}
 
-uint8_t nes_cpu::sbc() noexcept { return 0; }
+uint8_t nes_cpu::inx() noexcept {
+  x++;
+  m_set_flags(Negative, (x & 0x80) != 0);
+  m_set_flags(Zero, x == 0x00);
+  return 0;
+}
 
-uint8_t nes_cpu::sec() noexcept { return 0; }
+uint8_t nes_cpu::iny() noexcept {
+  y++;
+  m_set_flags(Negative, (y & 0x80) != 0);
+  m_set_flags(Zero, y == 0x00);
+  return 0;
+}
 
-uint8_t nes_cpu::sed() noexcept { return 0; }
+uint8_t nes_cpu::jmp() noexcept {
+  pc = m_addr_abs;
+  return 0;
+}
 
-uint8_t nes_cpu::sei() noexcept { return 0; }
+uint8_t nes_cpu::jsr() noexcept {
+  pc--;
+  write(0x100 + stack_p, (pc >> 8) & 0x00FF);
+  stack_p--;
+  write(0x100 + stack_p, pc & 0x00FF);
+  stack_p--;
+  pc = m_addr_abs;
+  return 0;
+}
 
-uint8_t nes_cpu::sta() noexcept { return 0; }
+uint8_t nes_cpu::lda() noexcept {
+  a = m_fetch_data();
+  m_set_flags(Negative, (a & 0x80) != 0);
+  m_set_flags(Zero, a == 0x00);
+  return 1;
+}
 
-uint8_t nes_cpu::stx() noexcept { return 0; }
+uint8_t nes_cpu::ldx() noexcept {
+  x = m_fetch_data();
+  m_set_flags(Negative, (x & 0x80) != 0);
+  m_set_flags(Zero, x == 0x00);
+  return 1;
+}
 
-uint8_t nes_cpu::sty() noexcept { return 0; }
+uint8_t nes_cpu::ldy() noexcept {
+  y = m_fetch_data();
+  m_set_flags(Negative, (y & 0x80) != 0);
+  m_set_flags(Zero, y == 0x00);
+  return 1;
+}
 
-uint8_t nes_cpu::tax() noexcept { return 0; }
+uint8_t nes_cpu::lsr() noexcept {
+  auto fet = m_fetch_data();
+  m_set_flags(Carry, (fet & 0x0001) != 0);
+  auto tmp = fet >> 1;
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  m_set_flags(Negative, (tmp & 0x0080) != 0);
+  if (m_opcode.address_mode == &nes_cpu::imp) {
+    a = tmp & 0x00FF;
+  } else {
+    write(m_addr_abs, tmp & 0x00FF);
+  }
+  return 0;
+}
 
-uint8_t nes_cpu::tay() noexcept { return 0; }
+uint8_t nes_cpu::ora() noexcept {
+  a = a | m_fetch_data();
+  m_set_flags(Zero, a == 0x00);
+  m_set_flags(Negative, (a & 0x80) != 0);
+  return 1;
+}
 
-uint8_t nes_cpu::tsx() noexcept { return 0; }
+uint8_t nes_cpu::pha() noexcept {
+  write(0x0100 + stack_p, a);
+  stack_p--;
+  return 0;
+}
 
-uint8_t nes_cpu::txa() noexcept { return 0; }
+uint8_t nes_cpu::php() noexcept {
+  write(0x0100 + stack_p, status | Break | Unused);
+  m_set_flags(Break, false);
+  m_set_flags(Unused, false);
+  stack_p--;
+  return 0;
+}
 
-uint8_t nes_cpu::txs() noexcept { return 0; }
+uint8_t nes_cpu::pla() noexcept {
+  stack_p++;
+  a = read(0x0100 + stack_p);
+  m_set_flags(Zero, a == 0x00);
+  m_set_flags(Negative, (a & 0x80) != 0);
+  return 0;
+}
 
-uint8_t nes_cpu::tya() noexcept { return 0; }
+uint8_t nes_cpu::plp() noexcept {
+  stack_p++;
+  status = read(0x0100 + stack_p);
+  m_set_flags(Unused, true);
+  return 0;
+}
 
-uint8_t nes_cpu::imm() noexcept { return 0; }
+uint8_t nes_cpu::rol() noexcept {
+  auto fet = m_fetch_data();
+  uint16_t tmp = static_cast<uint16_t>(fet << 1) | m_get_flags(Carry);
+  m_set_flags(Carry, (tmp & 0xFF00) != 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  m_set_flags(Negative, (tmp & 0x0080) != 0);
+  if (m_opcode.address_mode == &nes_cpu::imp) {
+    a = tmp & 0x00FF;
+  } else {
+    write(m_addr_abs, tmp & 0x00FF);
+  }
+  return 0;
+}
+
+uint8_t nes_cpu::ror() noexcept {
+  auto fet = m_fetch_data();
+  auto tmp = static_cast<uint16_t>(m_get_flags(Carry) << 7) | (fet >> 1);
+  m_set_flags(Carry, (tmp & 0xFF00) != 0);
+  m_set_flags(Zero, (tmp & 0x00FF) == 0x0000);
+  m_set_flags(Negative, (tmp & 0x0080) != 0);
+  if (m_opcode.address_mode == &nes_cpu::imp) {
+    a = tmp & 0x00FF;
+  } else {
+    write(m_addr_abs, tmp & 0x00FF);
+  }
+  return 0;
+}
+
+uint8_t nes_cpu::rti() noexcept {
+  stack_p++;
+  status = read(0x0100 + stack_p);
+  status &= ~Break;
+  status &= ~Unused;
+
+  stack_p++;
+  pc = static_cast<uint16_t>(read(0x0100 + stack_p));
+  stack_p++;
+  pc |= static_cast<uint16_t>(read(0x0100 + stack_p)) << 8;
+  return 0;
+}
+
+uint8_t nes_cpu::rts() noexcept {
+  stack_p++;
+  pc = static_cast<uint16_t>(read(0x0100 + stack_p));
+  stack_p++;
+  pc |= static_cast<uint16_t>(read(0x0100 + stack_p)) << 8;
+
+  pc++;
+  return 0;
+}
+
+uint8_t nes_cpu::sbc() noexcept {
+  auto data = m_fetch_data();
+
+  auto value = (static_cast<uint16_t>(data)) ^ 0x00FF;
+
+  auto tmp = static_cast<uint16_t>(a) + value +
+             static_cast<uint16_t>(m_get_flags(Carry));
+  m_set_flags(Carry, (tmp & 0xFF00) != 0);
+  m_set_flags(Zero, ((tmp & 0x00FF) == 0));
+  m_set_flags(Overflow,
+              (tmp ^ static_cast<uint16_t>(a)) & (tmp ^ value) & 0x0080);
+  m_set_flags(Negative, (tmp & 0x0080) != 0);
+  a = tmp & 0x00FF;
+  return 1;
+}
+
+uint8_t nes_cpu::sec() noexcept {
+  m_set_flags(Carry, true);
+  return 0;
+}
+
+uint8_t nes_cpu::sed() noexcept {
+  m_set_flags(Decimal, true);
+  return 0;
+}
+
+uint8_t nes_cpu::sei() noexcept {
+  m_set_flags(IntruptDisable, true);
+  return 0;
+}
+
+uint8_t nes_cpu::sta() noexcept {
+  write(m_addr_abs, a);
+  return 0;
+}
+
+uint8_t nes_cpu::stx() noexcept {
+  write(m_addr_abs, x);
+  return 0;
+}
+
+uint8_t nes_cpu::sty() noexcept {
+  write(m_addr_abs, y);
+  return 0;
+}
+
+uint8_t nes_cpu::tax() noexcept {
+  x = a;
+  m_set_flags(Negative, (x & 0x80) != 0);
+  m_set_flags(Zero, x == 0x00);
+  return 0;
+}
+
+uint8_t nes_cpu::tay() noexcept {
+  y = a;
+  m_set_flags(Negative, (y & 0x80) != 0);
+  m_set_flags(Zero, y == 0x00);
+  return 0;
+}
+
+uint8_t nes_cpu::tsx() noexcept {
+  x = stack_p;
+  m_set_flags(Negative, (x & 0x80) != 0);
+  m_set_flags(Zero, x == 0x00);
+  return 0;
+}
+
+uint8_t nes_cpu::txa() noexcept {
+  a = x;
+  m_set_flags(Negative, (a & 0x80) != 0);
+  m_set_flags(Zero, a == 0x00);
+  return 0;
+}
+
+uint8_t nes_cpu::txs() noexcept {
+  stack_p = x;
+  return 0;
+}
+
+uint8_t nes_cpu::tya() noexcept {
+  a = y;
+  m_set_flags(Negative, (a & 0x80) != 0);
+  m_set_flags(Zero, a == 0x00);
+  return 0;
+}
+
+// Addressing Modes
+uint8_t nes_cpu::imm() noexcept {
+  m_addr_abs = pc++;
+  return 0;
+}
 
 uint8_t nes_cpu::imp() noexcept { return 0; }
 
-uint8_t nes_cpu::zp0() noexcept { return 0; }
+uint8_t nes_cpu::zp0() noexcept {
+  m_addr_abs = read(pc);
+  pc++;
+  m_addr_abs &= 0x00FF;
+  return 0;
+}
 
-uint8_t nes_cpu::zpx() noexcept { return 0; }
+uint8_t nes_cpu::zpx() noexcept {
+  m_addr_abs = read(pc) + x;
+  pc++;
+  m_addr_abs &= 0x00FF;
+  return 0;
+}
 
-uint8_t nes_cpu::zpy() noexcept { return 0; }
+uint8_t nes_cpu::zpy() noexcept {
+  m_addr_abs = read(pc) + y;
+  pc++;
+  m_addr_abs &= 0x00FF;
+  return 0;
+}
 
-uint8_t nes_cpu::abs() noexcept { return 0; }
+uint8_t nes_cpu::abs() noexcept {
+  uint16_t lo = read(pc);
+  pc++;
+  uint16_t hi = read(pc);
+  pc++;
+  m_addr_abs = (hi << 8) | lo;
+  return 0;
+}
 
-uint8_t nes_cpu::azx() noexcept { return 0; }
+uint8_t nes_cpu::azx() noexcept {
+  uint16_t lo = read(pc);
+  pc++;
+  uint16_t hi = read(pc);
+  pc++;
 
-uint8_t nes_cpu::azy() noexcept { return 0; }
+  m_addr_abs = (hi << 8) | lo;
+  m_addr_abs += x;
 
-uint8_t nes_cpu::ind() noexcept { return 0; }
+  if ((m_addr_abs & 0xFF00) != (hi << 8)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
 
-uint8_t nes_cpu::izx() noexcept { return 0; }
+uint8_t nes_cpu::azy() noexcept {
+  uint16_t lo = read(pc);
+  pc++;
+  uint16_t hi = read(pc);
+  pc++;
 
-uint8_t nes_cpu::izy() noexcept { return 0; }
+  m_addr_abs = (hi << 8) | lo;
+  m_addr_abs += y;
 
-uint8_t nes_cpu::rel() noexcept { return 0; }
+  if ((m_addr_abs & 0xFF00) != (hi << 8)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+uint8_t nes_cpu::ind() noexcept {
+  uint16_t lo = read(pc);
+  pc++;
+  uint16_t hi = read(pc);
+  pc++;
+
+  uint16_t ptr = (hi << 8) | lo;
+
+  if (lo == 0x00FF) {
+    m_addr_abs = (read(ptr & 0xFF00) << 8) | read(ptr + 0);
+  } else {
+    m_addr_abs = (read(ptr + 1) << 8) | read(ptr + 0);
+  }
+
+  return 0;
+}
+
+uint8_t nes_cpu::izx() noexcept {
+  uint16_t data = read(pc);
+  pc++;
+
+  uint16_t lo = read((uint16_t)(data + (uint16_t)x) & 0x00FF);
+  uint16_t hi = read((uint16_t)(data + (uint16_t)x + 1) & 0x00FF);
+
+  m_addr_abs = (hi << 8) | lo;
+
+  return 0;
+}
+
+uint8_t nes_cpu::izy() noexcept {
+  uint16_t data = read(pc);
+  pc++;
+
+  uint16_t lo = read(data & 0x00FF);
+  uint16_t hi = read((data + 1) & 0x00FF);
+
+  m_addr_abs = (hi << 8) | lo;
+  m_addr_abs += y;
+
+  if ((m_addr_abs & 0xFF00) != (hi << 8)) {
+
+    return 1;
+  } else {
+
+    return 0;
+  }
+}
+
+uint8_t nes_cpu::rel() noexcept {
+  m_addr_rel = read(pc);
+  pc++;
+  if ((m_addr_rel & 0x80) != 0) {
+    m_addr_rel |= 0xFF00;
+  }
+  return 0;
+}
 
 instructions nes_cpu::m_get_instruction(uint8_t opcode) noexcept {
   switch (opcode) {

@@ -2,6 +2,7 @@
 
 namespace nes_emu {
 struct nes_cpu;
+struct nes_bus;
 
 struct instructions {
   const char *name;
@@ -22,26 +23,36 @@ enum cpu_flags {
 };
 
 struct nes_cpu {
+  uint16_t pc{};
   uint8_t a{};
   uint8_t x{};
   uint8_t y{};
   uint8_t stack_p{};
-  uint8_t pc{};
   uint8_t status{};
 
   void clock() noexcept;
   void reset() noexcept;
+  void irq() noexcept;
+  void nmi() noexcept;
+  void connect_to_bus(nes_bus *bus) noexcept;
+  [[nodiscard]] bool complete() const noexcept;
 
-  std::vector<std::pair<uint16_t, std::string_view>>
-  disassemble() const noexcept;
+  [[nodiscard]] std::map<uint16_t, std::string>
+  disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept;
 
 private:
   uint8_t cpu_cycles{};
   uint16_t m_addr_abs{};
   uint16_t m_addr_rel{};
+  nes_bus *m_bus = nullptr;
   instructions m_opcode{};
 
   uint8_t m_fetch_data() noexcept;
+  uint8_t read(uint16_t addr) noexcept;
+  void write(uint16_t addr, uint8_t data) noexcept;
+
+  void m_set_flags(cpu_flags flags, bool cond) noexcept;
+  [[nodiscard]] uint8_t m_get_flags(cpu_flags flags) const noexcept;
 
   // Instructions
   [[nodiscard]] uint8_t nop() noexcept;
