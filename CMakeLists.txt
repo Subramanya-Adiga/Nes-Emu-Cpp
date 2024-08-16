@@ -10,7 +10,7 @@ include(StanderdProjectSettings)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(project_options INTERFACE)
-target_compile_features(project_options INTERFACE cxx_std_23)
+target_compile_features(project_options INTERFACE cxx_std_20)
 
 if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
    OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -19,7 +19,8 @@ if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") OR (CMAKE_CXX_SIMULATE_ID
                                                    STREQUAL "MSVC"))
   target_compile_options(project_options INTERFACE /arch:AVX2)
-  target_compile_definitions(project_options INTERFACE _CRT_SECURE_NO_WARNINGS NOMINMAX UNICODE)
+  target_compile_definitions(project_options INTERFACE _CRT_SECURE_NO_WARNINGS
+                                                       NOMINMAX UNICODE)
 endif()
 
 set_project_warnings(project_options)
@@ -47,8 +48,8 @@ target_precompile_headers(
 
 find_package(range-v3 REQUIRED)
 find_package(fmt REQUIRED)
-target_link_libraries(
-  project_dependency INTERFACE range-v3::range-v3 fmt::fmt-header-only)
+target_link_libraries(project_dependency INTERFACE range-v3::range-v3
+                                                   fmt::fmt-header-only)
 
 message(STATUS "Project will be installed to ${CMAKE_INSTALL_PREFIX}")
 include(GNUInstallDirs)
