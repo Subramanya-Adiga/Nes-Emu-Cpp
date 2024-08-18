@@ -10,7 +10,7 @@ include(StanderdProjectSettings)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(project_options INTERFACE)
-target_compile_features(project_options INTERFACE cxx_std_20)
+target_compile_features(project_options INTERFACE cxx_std_23)
 
 if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
    OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -44,7 +44,8 @@ target_precompile_headers(
   <variant>
   <range/v3/all.hpp>
   <fmt/format.h>
-  <Windows.h>)
+  <Windows.h>
+  "src/olcPixelGameEngine.h")
 
 find_package(range-v3 REQUIRED)
 find_package(fmt REQUIRED)
