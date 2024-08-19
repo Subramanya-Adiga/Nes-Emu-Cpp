@@ -42,6 +42,7 @@ struct nes_cpu {
 
 private:
   uint8_t cpu_cycles{};
+  uint8_t fetched{};
   uint16_t m_addr_abs{};
   uint16_t m_addr_rel{};
   nes_bus *m_bus = nullptr;
