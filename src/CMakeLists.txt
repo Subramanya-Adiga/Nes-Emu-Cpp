@@ -8,7 +8,21 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" AND (NOT CMAKE_CXX_SIMULATE_ID STREQUAL
   target_link_options(stub_exe PRIVATE /LTCG)
 endif()
 
-target_sources(nes_emu PRIVATE main.cpp nes_cpu.cpp nes_cpu.h nes_bus.h
-                               nes_bus.cpp olcPixelGameEngine.h)
+target_sources(
+  nes_emu
+  PRIVATE main.cpp
+          nes_cpu.cpp
+          nes_cpu.h
+          nes_bus.h
+          utils.cpp
+          utils.h
+          nes_bus.cpp
+          mapper.cpp
+          mapper.h
+          mapper0.cpp
+          mapper0.h
+          cartridge.cpp
+          cartridge.h
+          olcPixelGameEngine.h)
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
