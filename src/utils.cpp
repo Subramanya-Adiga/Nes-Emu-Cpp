@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "utils.hpp"
 #include <bit>
 
 namespace nes_emu {
@@ -23,7 +23,8 @@ bool file_handle_helper::is_eof(file_handle &handle) {
   return feof(&*handle) == 0U;
 }
 
-std::vector<uint8_t> file_handle_helper::read_vec_u8(file_handle &handle,uint32_t size) {
+std::vector<uint8_t> file_handle_helper::read_vec_u8(file_handle &handle,
+                                                     uint32_t size) {
   if (size != 0) {
     std::vector<uint8_t> ret(size);
     if (fread(ret.data(), 1, size, &*handle) == size) {

@@ -1,6 +1,6 @@
-#include "cartridge.h"
-#include "mapper0.h"
-#include "utils.h"
+#include "cartridge.hpp"
+#include "mapper0.hpp"
+#include "utils.hpp"
 
 namespace nes_emu {
 

@@ -1,5 +1,5 @@
-#include "nes_cpu.h"
-#include "nes_bus.h"
+#include "nes_cpu.hpp"
+#include "nes_bus.hpp"
 
 namespace nes_emu {
 

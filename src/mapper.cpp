@@ -1,4 +1,4 @@
-#include "mapper.h"
+#include "mapper.hpp"
 
 namespace nes_emu {
 mapper::mapper(uint8_t prgBanks, uint8_t chrBanks)

@@ -1,5 +1,5 @@
 #pragma once
-#include "mapper.h"
+#include "mapper.hpp"
 
 namespace nes_emu {
 
