@@ -398,7 +398,7 @@ uint8_t nes_ppu::ppu_read(uint16_t addr) {
   } else if (addr >= 0x2000 && addr <= 0x3EFF) {
     addr &= 0x0FFF;
 
-    if (m_cart->mirror == MIRROR::VERTICAL) {
+    if (m_cart->mirror == Mirror::VERTICAL) {
       // Vertical
       if (addr >= 0x0000 && addr <= 0x03FF)
         data = tblName[0][addr & 0x03FF];
@@ -408,7 +408,7 @@ uint8_t nes_ppu::ppu_read(uint16_t addr) {
         data = tblName[0][addr & 0x03FF];
       if (addr >= 0x0C00 && addr <= 0x0FFF)
         data = tblName[1][addr & 0x03FF];
-    } else if (m_cart->mirror == MIRROR::HORIZONTAL) {
+    } else if (m_cart->mirror == Mirror::HORIZONTAL) {
       // Horizontal
       if (addr >= 0x0000 && addr <= 0x03FF)
         data = tblName[0][addr & 0x03FF];
@@ -444,7 +444,7 @@ void nes_ppu::ppu_write(uint16_t addr, uint8_t data) {
     tblPattern[(addr & 0x1000) >> 12][addr & 0x0FFF] = data;
   } else if (addr >= 0x2000 && addr <= 0x3EFF) {
     addr &= 0x0FFF;
-    if (m_cart->mirror == MIRROR::VERTICAL) {
+    if (m_cart->mirror == Mirror::VERTICAL) {
       // Vertical
       if (addr >= 0x0000 && addr <= 0x03FF)
         tblName[0][addr & 0x03FF] = data;
@@ -454,7 +454,7 @@ void nes_ppu::ppu_write(uint16_t addr, uint8_t data) {
         tblName[0][addr & 0x03FF] = data;
       if (addr >= 0x0C00 && addr <= 0x0FFF)
         tblName[1][addr & 0x03FF] = data;
-    } else if (m_cart->mirror == MIRROR::HORIZONTAL) {
+    } else if (m_cart->mirror == Mirror::HORIZONTAL) {
       // Horizontal
       if (addr >= 0x0000 && addr <= 0x03FF)
         tblName[0][addr & 0x03FF] = data;
@@ -479,7 +479,7 @@ void nes_ppu::ppu_write(uint16_t addr, uint8_t data) {
   }
 }
 
-void nes_ppu::connect_to_cartridge(nes_cartridge *cartridge) noexcept {
+void nes_ppu::connect_to_cartridge(Cartridge *cartridge) noexcept {
   m_cart = cartridge;
 }
 

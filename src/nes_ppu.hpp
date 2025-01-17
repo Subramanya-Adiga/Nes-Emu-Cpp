@@ -11,7 +11,7 @@ struct nes_ppu {
   void clock() noexcept;
   void reset() noexcept;
 
-  void connect_to_cartridge(nes_cartridge *cart) noexcept;
+  void connect_to_cartridge(Cartridge *cart) noexcept;
 
   void cpu_write(uint16_t addr, uint8_t data);
   [[nodiscard]] uint8_t cpu_read(uint16_t addr);
@@ -29,7 +29,7 @@ struct nes_ppu {
 private:
   uint16_t ppu_cycles{};
   uint16_t scanlines{};
-  nes_cartridge *m_cart = nullptr;
+  Cartridge *m_cart = nullptr;
 
   std::array<olc::Pixel, 0x40> pal_screen{};
   uint8_t tblName[2][1024];

@@ -3,18 +3,18 @@
 
 namespace nes_emu {
 
-enum MIRROR {
+enum Mirror : uint8_t {
   HORIZONTAL,
   VERTICAL,
   ONESCREEN_LO,
   ONESCREEN_HI,
 };
 
-class nes_cartridge {
+class Cartridge {
   static constexpr uint32_t NES_NUMERIC_HEADER = 441664846;
 
 public:
-  nes_cartridge(const std::string &file_name);
+  Cartridge(const std::string &file_name);
 
   [[nodiscard]] bool image_valid() const noexcept;
 
@@ -25,7 +25,7 @@ public:
   [[nodiscard]] bool ppu_write(uint16_t addr, uint8_t data);
 
   void reset() noexcept;
-  MIRROR mirror = HORIZONTAL;
+  Mirror mirror = HORIZONTAL;
 
 private:
   bool m_valid_image = false;
@@ -34,6 +34,6 @@ private:
   uint8_t m_character_banks{};
   std::vector<uint8_t> m_program_mem;
   std::vector<uint8_t> m_character_mem;
-  std::unique_ptr<mapper> m_mapper;
+  std::unique_ptr<Mapper> m_mapper;
 };
 } // namespace nes_emu

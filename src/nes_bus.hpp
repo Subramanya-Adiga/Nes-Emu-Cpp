@@ -9,7 +9,7 @@ struct nes_bus {
   nes_cpu cpu;
   nes_ppu ppu;
   std::array<uint8_t, 2> controllers{};
-  std::unique_ptr<nes_cartridge> cartridge;
+  std::unique_ptr<Cartridge> cartridge;
 
   std::array<uint8_t, 2048> memory{};
 

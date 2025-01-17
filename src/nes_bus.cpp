@@ -35,7 +35,7 @@ uint8_t nes_bus::read(uint16_t addr) noexcept {
 }
 
 void nes_bus::insert_cartridge(const std::string &nes_cart) {
-  cartridge = std::make_unique<nes_cartridge>(nes_cart);
+  cartridge = std::make_unique<Cartridge>(nes_cart);
   ppu.connect_to_cartridge(&*cartridge);
 }
 

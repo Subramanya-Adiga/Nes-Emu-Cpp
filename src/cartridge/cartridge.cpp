@@ -2,10 +2,9 @@
 #include "../utils.hpp"
 #include "mapper/mapper0.hpp"
 
-
 namespace nes_emu {
 
-nes_cartridge::nes_cartridge(const std::string &file_name) {
+Cartridge::Cartridge(const std::string &file_name) {
   file_handle nes_file(fopen(file_name.data(), "rb"),
                        [](FILE *file) { (void)fclose(file); });
 
@@ -42,7 +41,7 @@ nes_cartridge::nes_cartridge(const std::string &file_name) {
       switch (m_mapper_id) {
       case 0:
         m_mapper =
-            std::make_unique<mapper0>(m_program_banks, m_character_banks);
+            std::make_unique<Mapper0>(m_program_banks, m_character_banks);
         break;
       }
       m_valid_image = true;
@@ -50,7 +49,7 @@ nes_cartridge::nes_cartridge(const std::string &file_name) {
   }
 }
 
-bool nes_cartridge::cpu_read(uint16_t addr, uint8_t &data) {
+bool Cartridge::cpu_read(uint16_t addr, uint8_t &data) {
   uint32_t mapped_addr = 0;
   if (m_mapper->cpu_map_read(addr, mapped_addr)) {
     data = m_program_mem[mapped_addr];
@@ -59,7 +58,7 @@ bool nes_cartridge::cpu_read(uint16_t addr, uint8_t &data) {
     return false;
   }
 }
-bool nes_cartridge::cpu_write(uint16_t addr, uint8_t data) {
+bool Cartridge::cpu_write(uint16_t addr, uint8_t data) {
   uint32_t mapped_addr = 0;
   if (m_mapper->cpu_map_write(addr, mapped_addr, data)) {
     m_program_mem[mapped_addr] = data;
@@ -69,7 +68,7 @@ bool nes_cartridge::cpu_write(uint16_t addr, uint8_t data) {
   }
 }
 
-bool nes_cartridge::ppu_read(uint16_t addr, uint8_t &data) {
+bool Cartridge::ppu_read(uint16_t addr, uint8_t &data) {
   uint32_t mapped_addr = 0;
   if (m_mapper->ppu_map_read(addr, mapped_addr)) {
     data = m_character_mem[mapped_addr];
@@ -78,7 +77,7 @@ bool nes_cartridge::ppu_read(uint16_t addr, uint8_t &data) {
     return false;
   }
 }
-bool nes_cartridge::ppu_write(uint16_t addr, uint8_t data) {
+bool Cartridge::ppu_write(uint16_t addr, uint8_t data) {
   uint32_t mapped_addr = 0;
   if (m_mapper->ppu_map_read(addr, mapped_addr)) {
     m_character_mem[mapped_addr] = data;
@@ -88,13 +87,13 @@ bool nes_cartridge::ppu_write(uint16_t addr, uint8_t data) {
   }
 }
 
-void nes_cartridge::reset() noexcept {
+void Cartridge::reset() noexcept {
   if (m_mapper != nullptr) {
     m_mapper->reset();
   }
 }
 
-bool nes_cartridge::image_valid() const noexcept { return m_valid_image; }
+bool Cartridge::image_valid() const noexcept { return m_valid_image; }
 } // namespace nes_emu
 
 // namespace nes_emu
