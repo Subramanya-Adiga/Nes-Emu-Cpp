@@ -17,6 +17,12 @@ target_sources(
           utils.cpp
           utils.hpp
           nes_bus.cpp
+          cpu/instruction.hpp
+          cpu/instruction.cpp
+          cpu/cpu.hpp
+          cpu/cpu.cpp
+          cpu/bus.cpp
+          cpu/bus.hpp
           cartridge/mapper.cpp
           cartridge/mapper.hpp
           cartridge/mapper/mapper0.cpp
