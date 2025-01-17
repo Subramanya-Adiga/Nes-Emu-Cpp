@@ -145,8 +145,8 @@ nes_cpu::disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept {
       addr++;
       hi = m_bus->read(static_cast<uint16_t>(addr));
       addr++;
-      sInst += std::format("${:02X} {{ABS}}", lo);
-    } else if (opcode.address_mode == &nes_cpu::azy) {
+      sInst += std::format("${:02X} {{ABS}}", (hi << 8) | lo);
+    } else if (opcode.address_mode == &nes_cpu::azx) {
       lo = m_bus->read(static_cast<uint16_t>(addr));
       addr++;
       hi = m_bus->read(static_cast<uint16_t>(addr));
@@ -210,7 +210,6 @@ uint8_t nes_cpu::adc() noexcept {
 
   uint16_t tmp = static_cast<uint16_t>(a) + static_cast<uint16_t>(fetched) +
                  static_cast<uint16_t>(m_get_flags(Carry));
-
   m_set_flags(Carry, tmp > 255);
 
   m_set_flags(Zero, (tmp & 0x00FF) == 0);
@@ -347,7 +346,7 @@ uint8_t nes_cpu::brk() noexcept {
   m_set_flags(Break, true);
   write(0x0100 + stack_p, status);
   stack_p--;
-  m_set_flags(Break, true);
+  m_set_flags(Break, false);
 
   pc = static_cast<uint16_t>(read(0xFFFE)) |
        (static_cast<uint16_t>(read(0xFFFF)) << 8);
@@ -506,7 +505,6 @@ uint8_t nes_cpu::lda() noexcept {
 uint8_t nes_cpu::ldx() noexcept {
   (void)m_fetch_data();
   x = fetched;
-  x = m_fetch_data();
   m_set_flags(Negative, (x & 0x80) != 0);
   m_set_flags(Zero, x == 0x00);
   return 1;
@@ -515,7 +513,6 @@ uint8_t nes_cpu::ldx() noexcept {
 uint8_t nes_cpu::ldy() noexcept {
   (void)m_fetch_data();
   y = fetched;
-  y = m_fetch_data();
   m_set_flags(Negative, (y & 0x80) != 0);
   m_set_flags(Zero, y == 0x00);
   return 1;

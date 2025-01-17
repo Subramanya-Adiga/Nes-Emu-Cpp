@@ -12,17 +12,20 @@ target_sources(
   nes_emu
   PRIVATE main.cpp
           nes_cpu.cpp
-          nes_cpu.h
-          nes_bus.h
+          nes_cpu.hpp
+          nes_bus.hpp
           utils.cpp
-          utils.h
+          utils.hpp
           nes_bus.cpp
           mapper.cpp
-          mapper.h
+          mapper.hpp
           mapper0.cpp
-          mapper0.h
+          mapper0.hpp
           cartridge.cpp
-          cartridge.h
+          cartridge.hpp
+          nes_ppu.cpp
+          nes_ppu.hpp
           olcPixelGameEngine.h)
 
-target_link_libraries(nes_emu PRIVATE project_options project_dependency)
+target_link_libraries(nes_emu PRIVATE project_options project_dependency X11 GL
+                                      png)

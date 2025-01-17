@@ -44,7 +44,6 @@ target_precompile_headers(
   <variant>
   <range/v3/all.hpp>
   <fmt/format.h>
-  <Windows.h>
   "src/olcPixelGameEngine.h")
 
 find_package(range-v3 REQUIRED)

@@ -8,7 +8,7 @@ namespace nes_emu {
 struct nes_bus {
   nes_cpu cpu;
   nes_ppu ppu;
-  std::array<uint8_t, 2> controllers;
+  std::array<uint8_t, 2> controllers{};
   std::unique_ptr<nes_cartridge> cartridge;
 
   std::array<uint8_t, 2048> memory{};
@@ -25,7 +25,7 @@ struct nes_bus {
 
 private:
   uint32_t m_system_counter = 0;
-  std::array<uint8_t, 2> m_controller_state;
+  std::array<uint8_t, 2> m_controller_state{};
 };
 
 } // namespace nes_emu
