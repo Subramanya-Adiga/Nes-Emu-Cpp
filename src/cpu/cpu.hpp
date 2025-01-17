@@ -30,6 +30,9 @@ struct Cpu {
   void reset() noexcept;
   [[nodiscard]] bool complete() const noexcept;
 
+  [[nodiscard]] std::map<uint16_t, std::string>
+  disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept;
+
 private:
   Instruction instruction{};
   uint8_t step_cycle{};

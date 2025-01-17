@@ -9,7 +9,7 @@ void Cpu::clock() noexcept {
     return;
   }
 
-  if (bus->irq && (get_flag(CpuFlags::IntruptDisable) != 0)) {
+  if (bus->irq && (get_flag(CpuFlags::IntruptDisable) == 0)) {
     bus->irq = false;
     irq();
   }
@@ -25,20 +25,21 @@ void Cpu::clock() noexcept {
   op_bytes[0] = read(pc);
   instruction = process_opcode(op_bytes[0]);
   set_flag(CpuFlags::Unused, true);
+
   prev_pc = pc;
   pc++;
   step_cycle = instruction.cycles;
 
   auto clk1 = load_address(instruction.addressing_mode);
 
-  num_bytes = pc | prev_pc;
+  num_bytes = -pc | prev_pc;
 
   auto clk2 = execute(instruction.mnemonic);
 
   step_cycle += (clk1 & clk2);
   cycles += step_cycle;
   set_flag(CpuFlags::Unused, true);
-  wait_cycle = step_cycle | 1;
+  wait_cycle = -step_cycle | 1;
 }
 
 void Cpu::reset() noexcept {
@@ -53,7 +54,8 @@ void Cpu::reset() noexcept {
   y = 0;
 
   stack_p = 0xFD;
-  status = 0 | get_flag(CpuFlags::Unused) | get_flag(CpuFlags::IntruptDisable);
+  status = 0 | static_cast<uint8_t>(CpuFlags::Unused) |
+           static_cast<uint8_t>(CpuFlags::IntruptDisable);
 
   op_address = 0;
   wait_cycle = 0;
@@ -64,12 +66,13 @@ void Cpu::reset() noexcept {
 bool Cpu::complete() const noexcept { return wait_cycle == 0; }
 
 void Cpu::nmi() noexcept {
-  stack_push(static_cast<uint8_t>((pc >> 8) & 0x00FF));
-  stack_push(static_cast<uint8_t>(pc & 0x00FF));
+  stack_push(static_cast<uint8_t>(pc >> 8) & 0x00FF);
+  stack_push(static_cast<uint8_t>(pc) & 0x00FF);
 
   set_flag(CpuFlags::Break, false);
   set_flag(CpuFlags::Unused, true);
   set_flag(CpuFlags::IntruptDisable, true);
+  stack_push(status);
 
   op_address = 0xFFFE;
 
@@ -81,12 +84,13 @@ void Cpu::nmi() noexcept {
 
 void Cpu::irq() noexcept {
   if (get_flag(CpuFlags::IntruptDisable) == 0) {
-    stack_push(static_cast<uint8_t>((pc >> 8) & 0x00FF));
-    stack_push(static_cast<uint8_t>(pc & 0x00FF));
+    stack_push(static_cast<uint8_t>(pc >> 8) & 0x00FF);
+    stack_push(static_cast<uint8_t>(pc) & 0x00FF);
 
     set_flag(CpuFlags::Break, false);
     set_flag(CpuFlags::Unused, true);
     set_flag(CpuFlags::IntruptDisable, true);
+    stack_push(status);
 
     op_address = 0xFFFE;
 
@@ -95,6 +99,90 @@ void Cpu::irq() noexcept {
     pc = static_cast<uint16_t>((hi << 8) | lo);
     cycles = 7;
   }
+}
+
+std::map<uint16_t, std::string>
+Cpu::disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept {
+  uint32_t addr = addr_start;
+  uint8_t value = 0x00;
+  uint8_t lo = 0x00;
+  uint8_t hi = 0x00;
+  std::map<uint16_t, std::string> mapLines;
+  uint16_t line_addr = 0;
+
+  while (addr <= (uint32_t)addr_stop) {
+    line_addr = static_cast<uint16_t>(addr);
+
+    auto opcode = process_opcode(bus->read(static_cast<uint16_t>(addr)));
+    addr++;
+    auto sInst = std::format("${:X}: {} ", addr, opcode.name);
+
+    if (opcode.addressing_mode == AddressingMode::Implied) {
+      sInst += std::format(" {}", "{IMP}");
+    } else if (opcode.addressing_mode == AddressingMode::Immediate) {
+      value = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      sInst += std::format("#$ {:02X} {{IMM}}", value);
+    } else if (opcode.addressing_mode == AddressingMode::ZeroPage) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = 0x00;
+      sInst += std::format("#$ {:02X} {{ZP0}}", lo);
+    } else if (opcode.addressing_mode == AddressingMode::ZeroPageX) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = 0x00;
+      sInst += std::format("#$ {:02X} {{ZPX}}", lo);
+    } else if (opcode.addressing_mode == AddressingMode::ZeroPageY) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = 0x00;
+      sInst += std::format("#$ {:02X} ,Y {{ZPY}}", lo);
+    } else if (opcode.addressing_mode == AddressingMode::IndirectX) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = 0x00;
+      sInst += std::format("($ {:02X} ,X) {{IZX}}", lo);
+    } else if (opcode.addressing_mode == AddressingMode::IndirectY) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = 0x00;
+      sInst += std::format("($ {:02X} ,Y) {{IZY}}", lo);
+    } else if (opcode.addressing_mode == AddressingMode::Absolute) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      sInst += std::format("${:02X} {{ABS}}", (hi << 8) | lo);
+    } else if (opcode.addressing_mode == AddressingMode::AbsoluteX) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      sInst += std::format("${:02X} ,X) {{ABX}}", (hi << 8) | lo);
+    } else if (opcode.addressing_mode == AddressingMode::AbsoluteY) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      sInst += std::format("${:02X} ,Y {{ABY}}", (hi << 8) | lo);
+    } else if (opcode.addressing_mode == AddressingMode::Indirect) {
+      lo = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      hi = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      sInst += std::format("${:02X}) {{IND}}", (hi << 8) | lo);
+    } else if (opcode.addressing_mode == AddressingMode::Relative) {
+      value = bus->read(static_cast<uint16_t>(addr));
+      addr++;
+      sInst += std::format("$ {:02X} [${:02X}] {{REL}}", value,
+                           static_cast<int>(addr + value));
+    }
+
+    mapLines[line_addr] = sInst;
+  }
+
+  return mapLines;
 }
 
 uint8_t Cpu::read(uint16_t addr) const noexcept { return bus->read(addr); }
@@ -107,12 +195,12 @@ void Cpu::set_flag(CpuFlags flags, bool cond) noexcept {
   if (cond) {
     status |= static_cast<uint8_t>(flags);
   } else {
-    status &= static_cast<uint8_t>(flags);
+    status &= ~static_cast<uint8_t>(flags);
   }
 }
 
 uint8_t Cpu::get_flag(CpuFlags flags) const noexcept {
-  return ((status & static_cast<uint8_t>(flags)) != 0) ? 1 : 0;
+  return ((status & static_cast<uint8_t>(flags)) > 0) ? 1 : 0;
 }
 
 void Cpu::stack_push(uint8_t data) noexcept {
@@ -243,9 +331,9 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
   }
   case AddressingMode::IndirectY: {
     op_bytes[1] = read(pc);
+    pc++;
 
-    auto data = static_cast<uint16_t>(op_bytes[1]);
-    pc += 1;
+    auto data = op_bytes[1];
 
     auto lo = read(data & 0x00FF);
     auto hi = read((data + 1) & 0x00FF);
@@ -265,8 +353,6 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
     }
     return 0;
   }
-  default:
-    break;
   }
   return 0;
 }
@@ -404,9 +490,9 @@ uint8_t Cpu::execute(Mnemonic mnemonic) noexcept {
   }
   case Mnemonic::Cmp: {
     auto op = read(op_address);
-    auto res = static_cast<uint8_t>(a - op);
+    auto res = a - op;
     set_flag(CpuFlags::Carry, a >= op);
-    set_nz(res);
+    set_nz(static_cast<uint8_t>(res));
     return 1;
   }
   case Mnemonic::Cpx: {
@@ -457,7 +543,7 @@ uint8_t Cpu::execute(Mnemonic mnemonic) noexcept {
   }
   case Mnemonic::Iny: {
     y++;
-    set_nz(x);
+    set_nz(y);
     return 0;
   }
   case Mnemonic::Jmp: {
@@ -559,15 +645,15 @@ uint8_t Cpu::execute(Mnemonic mnemonic) noexcept {
   }
   case Mnemonic::Rti: {
     status = stack_pop();
-    status &= static_cast<uint8_t>(~CpuFlags::Break);
-    status &= static_cast<uint8_t>(~CpuFlags::Unused);
+    status &= ~static_cast<uint8_t>(CpuFlags::Break);
+    status &= ~static_cast<uint8_t>(CpuFlags::Unused);
     pc = static_cast<uint16_t>(stack_pop());
     pc |= static_cast<uint16_t>(stack_pop() << 8);
     return 0;
   }
   case Mnemonic::Rts: {
     pc = static_cast<uint16_t>(stack_pop());
-    pc |= static_cast<uint16_t>(stack_pop());
+    pc |= static_cast<uint16_t>(stack_pop()) << 8;
     pc++;
     return 0;
   }
