@@ -285,7 +285,6 @@ public:
     // Draw rendered output
     // ========================================================
     DrawSprite(0, 0, &nes.ppu.GetScreen(), 2);
-    fmt::print("{}\n", mapAsm[0x8002]);
     return true;
   }
 };

@@ -49,22 +49,19 @@ Cartridge::Cartridge(const std::string &file_name) {
   }
 }
 
-bool Cartridge::cpu_read(uint16_t addr, uint8_t &data) {
-  uint32_t mapped_addr = 0;
-  if (m_mapper->cpu_map_read(addr, mapped_addr)) {
-    data = m_program_mem[mapped_addr];
-    return true;
+uint8_t Cartridge::cpu_read(uint16_t addr) {
+  if (auto mapped_data = m_mapper->cpu_map_read(addr);
+      mapped_data.mapped_addr == 0xFFFFFFFF) {
+    return mapped_data.data;
   } else {
-    return false;
+    return m_program_mem[mapped_data.mapped_addr];
   }
+  return {};
 }
-bool Cartridge::cpu_write(uint16_t addr, uint8_t data) {
-  uint32_t mapped_addr = 0;
-  if (m_mapper->cpu_map_write(addr, mapped_addr, data)) {
-    m_program_mem[mapped_addr] = data;
-    return true;
-  } else {
-    return false;
+void Cartridge::cpu_write(uint16_t addr, uint8_t data) {
+  if (auto mapped_data = m_mapper->cpu_map_write(addr, data);
+      mapped_data.mapped_addr != 0xFFFFFFFF) {
+    m_program_mem[mapped_data.mapped_addr] = data;
   }
 }
 

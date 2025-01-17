@@ -18,8 +18,8 @@ public:
 
   [[nodiscard]] bool image_valid() const noexcept;
 
-  [[nodiscard]] bool cpu_read(uint16_t addr, uint8_t &data);
-  [[nodiscard]] bool cpu_write(uint16_t addr, uint8_t data);
+  [[nodiscard]] uint8_t cpu_read(uint16_t addr);
+  void cpu_write(uint16_t addr, uint8_t data);
 
   [[nodiscard]] bool ppu_read(uint16_t addr, uint8_t &data);
   [[nodiscard]] bool ppu_write(uint16_t addr, uint8_t data);

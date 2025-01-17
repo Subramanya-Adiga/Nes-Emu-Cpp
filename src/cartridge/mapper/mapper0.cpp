@@ -4,21 +4,22 @@ namespace nes_emu {
 Mapper0::Mapper0(uint8_t prg_bnks, uint8_t chr_bnks)
     : Mapper(prg_bnks, chr_bnks) {}
 
-bool Mapper0::cpu_map_read(uint16_t addr, uint32_t &mapped_addr) {
+MapperReturn Mapper0::cpu_map_read(uint16_t addr) {
   if ((addr >= 0x8000) && (addr <= 0xFFFF)) {
-    mapped_addr = addr & (m_program_banks > 1 ? 0x7FFF : 0x3FFF);
-    return true;
+    return {.mapped_addr = static_cast<uint32_t>(
+                addr & (m_program_banks > 1 ? 0x7FFF : 0x3FFF)),
+            .data = 0};
   }
-  return false;
+  return {};
 }
 
-bool Mapper0::cpu_map_write(uint16_t addr, uint32_t &mapped_addr,
-                            uint8_t data) {
+MapperReturn Mapper0::cpu_map_write(uint16_t addr, uint8_t data) {
   if ((addr >= 0x8000) && (addr <= 0xFFFF)) {
-    mapped_addr = addr & (m_program_banks > 1 ? 0x7FFF : 0x3FFF);
-    return true;
+    return {.mapped_addr = static_cast<uint32_t>(
+                addr & (m_program_banks > 1 ? 0x7FFF : 0x3FFF)),
+            .data = 0};
   }
-  return false;
+  return {};
 }
 bool Mapper0::ppu_map_read(uint16_t addr, uint32_t &mapped_addr) {
   if (addr >= 0x0000 && addr <= 0x1FFF) {
