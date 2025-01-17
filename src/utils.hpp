@@ -24,7 +24,7 @@ struct file_handle_helper {
                                          bool big_endian = false);
   [[nodiscard]] static uint32_t read_u32(file_handle &handle,
                                          bool big_endian = false);
-  ;
+
   [[nodiscard]] static uint64_t read_u64(file_handle &handle,
                                          bool big_endian = false);
 

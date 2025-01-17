@@ -12,7 +12,7 @@ std::size_t file_handle_helper::file_size(file_handle &handle) {
       return static_cast<std::size_t>(size);
     }
   }
-  return read_size;
+  return static_cast<std::size_t>(read_size);
 }
 
 std::size_t file_handle_helper::file_position(file_handle &handle) {
