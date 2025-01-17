@@ -10,8 +10,8 @@ public:
   MapperReturn cpu_map_read(uint16_t addr) override;
   MapperReturn cpu_map_write(uint16_t addr, uint8_t data) override;
 
-  bool ppu_map_read(uint16_t addr, uint32_t &mapped_addr) override;
-  bool ppu_map_write(uint16_t addr, uint32_t &mapped_addr) override;
+  uint32_t ppu_map_read(uint16_t addr) override;
+  uint32_t ppu_map_write(uint16_t addr) override;
 
   void reset() override;
 };

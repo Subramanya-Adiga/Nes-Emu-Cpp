@@ -14,15 +14,15 @@ class Cartridge {
   static constexpr uint32_t NES_NUMERIC_HEADER = 441664846;
 
 public:
-  Cartridge(const std::string &file_name);
+  Cartridge(std::string_view file_name);
 
   [[nodiscard]] bool image_valid() const noexcept;
 
   [[nodiscard]] uint8_t cpu_read(uint16_t addr);
   void cpu_write(uint16_t addr, uint8_t data);
 
-  [[nodiscard]] bool ppu_read(uint16_t addr, uint8_t &data);
-  [[nodiscard]] bool ppu_write(uint16_t addr, uint8_t data);
+  [[nodiscard]] uint8_t ppu_read(uint16_t addr);
+  void ppu_write(uint16_t addr, uint8_t data);
 
   void reset() noexcept;
   Mirror mirror = HORIZONTAL;

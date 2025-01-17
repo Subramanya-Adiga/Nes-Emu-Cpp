@@ -4,7 +4,7 @@
 
 namespace nes_emu {
 
-Cartridge::Cartridge(const std::string &file_name) {
+Cartridge::Cartridge(std::string_view file_name) {
   file_handle nes_file(fopen(file_name.data(), "rb"),
                        [](FILE *file) { (void)fclose(file); });
 
@@ -65,22 +65,16 @@ void Cartridge::cpu_write(uint16_t addr, uint8_t data) {
   }
 }
 
-bool Cartridge::ppu_read(uint16_t addr, uint8_t &data) {
-  uint32_t mapped_addr = 0;
-  if (m_mapper->ppu_map_read(addr, mapped_addr)) {
-    data = m_character_mem[mapped_addr];
-    return true;
-  } else {
-    return false;
+uint8_t Cartridge::ppu_read(uint16_t addr) {
+  if (auto mapped_data = m_mapper->ppu_map_read(addr); mapped_data != 0) {
+    return m_character_mem[mapped_data];
   }
+  return 0;
 }
-bool Cartridge::ppu_write(uint16_t addr, uint8_t data) {
-  uint32_t mapped_addr = 0;
-  if (m_mapper->ppu_map_read(addr, mapped_addr)) {
-    m_character_mem[mapped_addr] = data;
-    return true;
-  } else {
-    return false;
+
+void Cartridge::ppu_write(uint16_t addr, uint8_t data) {
+  if (auto mapped_data = m_mapper->ppu_map_write(addr); mapped_data != 0) {
+    m_character_mem[mapped_data] = data;
   }
 }
 
