@@ -1,8 +1,9 @@
 #pragma once
-#include "bus.hpp"
 #include "instruction.hpp"
 
 namespace nes_emu {
+
+struct Bus;
 
 enum CpuFlags : uint8_t {
   Carry = (1 << 0),

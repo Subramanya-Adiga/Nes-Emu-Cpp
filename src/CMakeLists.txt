@@ -33,5 +33,4 @@ target_sources(
           nes_ppu.hpp
           olcPixelGameEngine.h)
 
-target_link_libraries(nes_emu PRIVATE project_options project_dependency X11 GL
-                                      png)
+target_link_libraries(nes_emu PRIVATE project_options project_dependency)

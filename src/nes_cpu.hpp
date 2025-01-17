@@ -1,5 +1,5 @@
 #pragma once
-
+#include "cpu/cpu.hpp"
 namespace nes_emu {
 struct nes_cpu;
 struct nes_bus;
@@ -11,16 +11,16 @@ struct instructions {
   uint8_t cycles;
 };
 
-enum cpu_flags {
-  Carry = (1 << 0),
-  Zero = (1 << 1),
-  IntruptDisable = (1 << 2),
-  Decimal = (1 << 3),
-  Break = (1 << 4),
-  Unused = (1 << 5),
-  Overflow = (1 << 6),
-  Negative = (1 << 7),
-};
+// enum cpu_flags {
+//   Carry = (1 << 0),
+//   Zero = (1 << 1),
+//   IntruptDisable = (1 << 2),
+//   Decimal = (1 << 3),
+//   Break = (1 << 4),
+//   Unused = (1 << 5),
+//   Overflow = (1 << 6),
+//   Negative = (1 << 7),
+// };
 
 struct nes_cpu {
   uint16_t pc{};
@@ -52,8 +52,8 @@ private:
   uint8_t read(uint16_t addr) noexcept;
   void write(uint16_t addr, uint8_t data) noexcept;
 
-  void m_set_flags(cpu_flags flags, bool cond) noexcept;
-  [[nodiscard]] uint8_t m_get_flags(cpu_flags flags) const noexcept;
+  void m_set_flags(CpuFlags flags, bool cond) noexcept;
+  [[nodiscard]] uint8_t m_get_flags(CpuFlags flags) const noexcept;
 
   // Instructions
   [[nodiscard]] uint8_t nop() noexcept;

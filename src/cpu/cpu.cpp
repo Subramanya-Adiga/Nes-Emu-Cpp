@@ -1,4 +1,5 @@
 #include "cpu.hpp"
+#include "bus.hpp"
 
 namespace nes_emu {
 
@@ -36,6 +37,7 @@ void Cpu::clock() noexcept {
 
   step_cycle += (clk1 & clk2);
   cycles += step_cycle;
+  set_flag(CpuFlags::Unused, true);
   wait_cycle = step_cycle | 1;
 }
 

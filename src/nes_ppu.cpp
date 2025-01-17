@@ -389,12 +389,10 @@ uint8_t nes_ppu::ppu_read(uint16_t addr) {
   uint8_t data = 0x00;
   addr &= 0x3FFF;
 
-  if (m_cart->ppu_read(addr, data)) {
-
-  } else if (addr >= 0x0000 && addr <= 0x1FFF) {
+  if (addr >= 0x0000 && addr <= 0x1FFF) {
     // If the cartridge cant map the address, have
     // a physical location ready here
-    data = tblPattern[(addr & 0x1000) >> 12][addr & 0x0FFF];
+    data = m_cart->ppu_read(addr);
   } else if (addr >= 0x2000 && addr <= 0x3EFF) {
     addr &= 0x0FFF;
 
@@ -438,10 +436,8 @@ uint8_t nes_ppu::ppu_read(uint16_t addr) {
 void nes_ppu::ppu_write(uint16_t addr, uint8_t data) {
   addr &= 0x3FFF;
 
-  if (m_cart->ppu_write(addr, data)) {
-
-  } else if (addr >= 0x0000 && addr <= 0x1FFF) {
-    tblPattern[(addr & 0x1000) >> 12][addr & 0x0FFF] = data;
+  if (addr >= 0x0000 && addr <= 0x1FFF) {
+    m_cart->ppu_write(addr, data);
   } else if (addr >= 0x2000 && addr <= 0x3EFF) {
     addr &= 0x0FFF;
     if (m_cart->mirror == Mirror::VERTICAL) {

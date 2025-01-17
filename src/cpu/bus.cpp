@@ -1,6 +1,9 @@
 #include "bus.hpp"
 
 namespace nes_emu {
+
+Bus::Bus() { cpu.bus = this; }
+
 uint8_t Bus::read(uint16_t addr) noexcept {
   if ((addr >= 0x0000) && (addr <= 0x1FFF)) {
     return memory[addr & 0x7FF];
@@ -38,6 +41,9 @@ uint32_t Bus::clock_counter() const noexcept { return counter; }
 
 void Bus::clock() noexcept {
   ppu.clock();
+  if ((counter % 3) == 0) {
+    cpu.clock();
+  }
   if (ppu.nmi) {
     ppu.nmi = false;
     nmi = true;
@@ -46,6 +52,7 @@ void Bus::clock() noexcept {
 }
 
 void Bus::reset() noexcept {
+  cpu.reset();
   ppu.reset();
   counter = 0;
 }

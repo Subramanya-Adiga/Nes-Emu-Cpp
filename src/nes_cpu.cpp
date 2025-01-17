@@ -7,7 +7,7 @@ void nes_cpu::clock() noexcept {
   if (cpu_cycles == 0) {
 
     m_opcode = m_get_instruction(read(pc));
-    m_set_flags(cpu_flags::Unused, true);
+    m_set_flags(CpuFlags::Unused, true);
 
     pc++;
     cpu_cycles = m_opcode.cycles;
@@ -16,7 +16,7 @@ void nes_cpu::clock() noexcept {
     auto clk2 = (this->*m_opcode.function)();
 
     cpu_cycles += (clk1 & clk2);
-    m_set_flags(cpu_flags::Unused, true);
+    m_set_flags(CpuFlags::Unused, true);
   }
 
   cpu_cycles--;
@@ -35,7 +35,7 @@ void nes_cpu::reset() noexcept {
   y = 0;
 
   stack_p = 0xFD;
-  status = 0x00 | cpu_flags::Unused;
+  status = 0x00 | CpuFlags::Unused;
 
   m_addr_abs = 0;
   m_addr_rel = 0;
@@ -45,7 +45,7 @@ void nes_cpu::reset() noexcept {
 }
 
 void nes_cpu::irq() noexcept {
-  if (m_get_flags(cpu_flags::IntruptDisable) == 0) {
+  if (m_get_flags(CpuFlags::IntruptDisable) == 0) {
 
     write(0x0100 + stack_p, (pc >> 8) & 0x00FF);
     stack_p--;
@@ -53,9 +53,9 @@ void nes_cpu::irq() noexcept {
     stack_p--;
 
     // Then Push the status register to the stack
-    m_set_flags(cpu_flags::Break, false);
-    m_set_flags(cpu_flags::Unused, true);
-    m_set_flags(cpu_flags::IntruptDisable, true);
+    m_set_flags(CpuFlags::Break, false);
+    m_set_flags(CpuFlags::Unused, true);
+    m_set_flags(CpuFlags::IntruptDisable, true);
     write(0x0100 + stack_p, status);
     stack_p--;
 
@@ -75,9 +75,9 @@ void nes_cpu::nmi() noexcept {
   stack_p--;
 
   // Then Push the status register to the stack
-  m_set_flags(cpu_flags::Break, false);
-  m_set_flags(cpu_flags::Unused, true);
-  m_set_flags(cpu_flags::IntruptDisable, true);
+  m_set_flags(CpuFlags::Break, false);
+  m_set_flags(CpuFlags::Unused, true);
+  m_set_flags(CpuFlags::IntruptDisable, true);
   write(0x0100 + stack_p, status);
   stack_p--;
 
@@ -191,7 +191,7 @@ void nes_cpu::write(uint16_t addr, uint8_t data) noexcept {
   m_bus->write(addr, data);
 }
 
-void nes_cpu::m_set_flags(cpu_flags flags, bool cond) noexcept {
+void nes_cpu::m_set_flags(CpuFlags flags, bool cond) noexcept {
   if (cond) {
     status |= flags;
   } else {
@@ -199,7 +199,7 @@ void nes_cpu::m_set_flags(cpu_flags flags, bool cond) noexcept {
   }
 }
 
-uint8_t nes_cpu::m_get_flags(cpu_flags flags) const noexcept {
+uint8_t nes_cpu::m_get_flags(CpuFlags flags) const noexcept {
   return ((status & flags) > 0) ? 1 : 0;
 }
 
@@ -290,13 +290,13 @@ uint8_t nes_cpu::bit() noexcept {
   (void)m_fetch_data();
   uint16_t tmp = a & fetched;
   m_set_flags(Zero, (tmp & 0x00FF) == 0x00);
-  m_set_flags(Negative, (fetched & (1 << 7)) != 0);
-  m_set_flags(Overflow, (fetched & (1 << 6)) != 0);
+  m_set_flags(CpuFlags::Negative, (fetched & (1 << 7)) != 0);
+  m_set_flags(CpuFlags::Overflow, (fetched & (1 << 6)) != 0);
   return 0;
 }
 
 uint8_t nes_cpu::bmi() noexcept {
-  if (m_get_flags(Negative) == 1) {
+  if (m_get_flags(CpuFlags::Negative) == 1) {
     cpu_cycles++;
     m_addr_abs = pc + m_addr_rel;
     if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
@@ -309,7 +309,7 @@ uint8_t nes_cpu::bmi() noexcept {
 }
 
 uint8_t nes_cpu::bne() noexcept {
-  if (m_get_flags(Zero) == 0) {
+  if (m_get_flags(CpuFlags::Zero) == 0) {
     cpu_cycles++;
     m_addr_abs = pc + m_addr_rel;
     if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
@@ -322,7 +322,7 @@ uint8_t nes_cpu::bne() noexcept {
 }
 
 uint8_t nes_cpu::bpl() noexcept {
-  if (m_get_flags(Negative) == 0) {
+  if (m_get_flags(CpuFlags::Negative) == 0) {
     cpu_cycles++;
     m_addr_abs = pc + m_addr_rel;
     if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
@@ -337,16 +337,16 @@ uint8_t nes_cpu::bpl() noexcept {
 uint8_t nes_cpu::brk() noexcept {
   pc++;
 
-  m_set_flags(IntruptDisable, true);
+  m_set_flags(CpuFlags::IntruptDisable, true);
   write(0x0100 + stack_p, (pc >> 8) & 0x00FF);
   stack_p--;
   write(0x0100 + stack_p, pc & 0x00FF);
   stack_p--;
 
-  m_set_flags(Break, true);
+  m_set_flags(CpuFlags::Break, true);
   write(0x0100 + stack_p, status);
   stack_p--;
-  m_set_flags(Break, false);
+  m_set_flags(CpuFlags::Break, false);
 
   pc = static_cast<uint16_t>(read(0xFFFE)) |
        (static_cast<uint16_t>(read(0xFFFF)) << 8);
@@ -354,7 +354,7 @@ uint8_t nes_cpu::brk() noexcept {
 }
 
 uint8_t nes_cpu::bvc() noexcept {
-  if (m_get_flags(Overflow) == 0) {
+  if (m_get_flags(CpuFlags::Overflow) == 0) {
     cpu_cycles++;
     m_addr_abs = pc + m_addr_rel;
     if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
@@ -367,7 +367,7 @@ uint8_t nes_cpu::bvc() noexcept {
 }
 
 uint8_t nes_cpu::bvs() noexcept {
-  if (m_get_flags(Overflow) == 1) {
+  if (m_get_flags(CpuFlags::Overflow) == 1) {
     cpu_cycles++;
     m_addr_abs = pc + m_addr_rel;
     if ((m_addr_abs & 0xFF00) != (pc & 0xFF00)) {
@@ -379,22 +379,22 @@ uint8_t nes_cpu::bvs() noexcept {
 }
 
 uint8_t nes_cpu::clc() noexcept {
-  m_set_flags(cpu_flags::Carry, false);
+  m_set_flags(CpuFlags::Carry, false);
   return 0;
 }
 
 uint8_t nes_cpu::cld() noexcept {
-  m_set_flags(cpu_flags::Decimal, false);
+  m_set_flags(CpuFlags::Decimal, false);
   return 0;
 }
 
 uint8_t nes_cpu::cli() noexcept {
-  m_set_flags(cpu_flags::IntruptDisable, false);
+  m_set_flags(CpuFlags::IntruptDisable, false);
   return 0;
 }
 
 uint8_t nes_cpu::clv() noexcept {
-  m_set_flags(cpu_flags::Overflow, false);
+  m_set_flags(CpuFlags::Overflow, false);
   return 0;
 }
 

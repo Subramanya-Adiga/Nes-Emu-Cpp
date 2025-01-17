@@ -1,14 +1,17 @@
 #pragma once
 #include "../cartridge/cartridge.hpp"
 #include "../nes_ppu.hpp"
-
+#include "cpu.hpp"
 namespace nes_emu {
 
 struct Bus {
   bool nmi{};
   bool irq{};
-  
+
   nes_ppu ppu;
+  Cpu cpu;
+
+  Bus();
 
   [[nodiscard]] uint8_t read(uint16_t addr) noexcept;
   void write(uint16_t addr, uint8_t data) noexcept;

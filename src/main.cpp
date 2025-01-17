@@ -1,3 +1,4 @@
+#include "cpu/bus.hpp"
 #include "nes_bus.hpp"
 #include "nes_cpu.hpp"
 #include "utils.hpp"
@@ -11,7 +12,8 @@ class Demo_olc6502 : public olc::PixelGameEngine {
 public:
   Demo_olc6502() { sAppName = "olc6502 Demonstration"; }
 
-  nes_emu::nes_bus nes;
+  // nes_emu::nes_bus nes;
+  nes_emu::Bus nes;
   std::map<uint16_t, std::string> mapAsm;
 
   float fResidualTime = 0.0f;
@@ -156,10 +158,10 @@ public:
     // Load the cartridge
 
     // Insert into NES
-    nes.insert_cartridge("nestest.nes");
+    nes.load_cartridge("nestest.nes");
 
     // Extract dissassembly
-    mapAsm = nes.cpu.disassemble(0x0000, 0xFFFF);
+    // mapAsm = nes.cpu.disassemble(0x0000, 0xFFFF);
 
     // Reset NES
     nes.reset();
@@ -205,15 +207,15 @@ public:
     Clear(olc::DARK_BLUE);
 
     // Sneaky peek of controller input in next video! ;P
-    nes.controllers[0] = 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::X).bHeld ? 0x80 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::Z).bHeld ? 0x40 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::A).bHeld ? 0x20 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::S).bHeld ? 0x10 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::UP).bHeld ? 0x08 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::DOWN).bHeld ? 0x04 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::LEFT).bHeld ? 0x02 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::RIGHT).bHeld ? 0x01 : 0x00;
+    // nes.controllers[0] = 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::X).bHeld ? 0x80 : 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::Z).bHeld ? 0x40 : 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::A).bHeld ? 0x20 : 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::S).bHeld ? 0x10 : 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::UP).bHeld ? 0x08 : 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::DOWN).bHeld ? 0x04 : 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::LEFT).bHeld ? 0x02 : 0x00;
+    // nes.controllers[0] |= GetKey(olc::Key::RIGHT).bHeld ? 0x01 : 0x00;
 
     if (GetKey(olc::Key::SPACE).bPressed)
       bEmulationRun = !bEmulationRun;
