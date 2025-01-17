@@ -17,12 +17,12 @@ target_sources(
           utils.cpp
           utils.hpp
           nes_bus.cpp
-          mapper.cpp
-          mapper.hpp
-          mapper0.cpp
-          mapper0.hpp
-          cartridge.cpp
-          cartridge.hpp
+          cartridge/mapper.cpp
+          cartridge/mapper.hpp
+          cartridge/mapper/mapper0.cpp
+          cartridge/mapper/mapper0.hpp
+          cartridge/cartridge.cpp
+          cartridge/cartridge.hpp
           nes_ppu.cpp
           nes_ppu.hpp
           olcPixelGameEngine.h)

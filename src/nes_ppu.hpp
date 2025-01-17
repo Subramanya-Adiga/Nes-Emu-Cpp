@@ -1,5 +1,5 @@
 #pragma once
-#include "cartridge.hpp"
+#include "cartridge/cartridge.hpp"
 #include "olcPixelGameEngine.h"
 
 namespace nes_emu {

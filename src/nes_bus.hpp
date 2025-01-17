@@ -1,5 +1,5 @@
 #pragma once
-#include "cartridge.hpp"
+#include "cartridge/cartridge.hpp"
 #include "nes_cpu.hpp"
 #include "nes_ppu.hpp"
 
