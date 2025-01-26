@@ -89,3 +89,5 @@ zig-out/*
 target/*
 Cargo.lock
 .zig-cache/*
+*.nes
+log/*
