@@ -205,7 +205,7 @@ olc::Sprite &nes_ppu::GetPatternTable(uint8_t i, uint8_t palette) {
         for (uint16_t col = 0; col < 8; col++) {
           // We can get the index value by simply adding the bits together
           // but we're only interested in the lsb of the row words because...
-          uint8_t pixel = (tile_lsb & 0x01) + (tile_msb & 0x01);
+          uint8_t pixel = (tile_lsb & 0x01) << 1 | (tile_msb & 0x01);
 
           // ...we will shift the row words 1 bit right for each column of
           // the character.
