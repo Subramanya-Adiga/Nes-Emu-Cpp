@@ -10,6 +10,7 @@ struct Bus {
 
   nes_ppu ppu;
   Cpu cpu;
+  std::array<uint8_t, 2> controllers{};
 
   Bus();
 
@@ -24,6 +25,7 @@ struct Bus {
 
 private:
   std::array<uint8_t, 2048> memory{};
+  std::array<uint8_t, 2> m_controller_state{};
   std::unique_ptr<Cartridge> cart;
   uint32_t counter{};
 };
