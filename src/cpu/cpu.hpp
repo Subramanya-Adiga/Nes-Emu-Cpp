@@ -1,5 +1,7 @@
 #pragma once
 #include "instruction.hpp"
+#include <fmt/ranges.h>
+#include <fmt/std.h>
 
 namespace nes_emu {
 
@@ -34,6 +36,7 @@ struct Cpu {
   disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept;
 
 private:
+  friend fmt::formatter<nes_emu::Cpu>;
   Instruction instruction{};
   uint8_t step_cycle{};
   uint8_t wait_cycle{};
@@ -62,3 +65,95 @@ private:
   void set_nz(uint8_t data) noexcept;
 };
 } // namespace nes_emu
+
+template <>
+struct fmt::formatter<nes_emu::Cpu> : fmt::formatter<std::string_view> {
+  fmt::format_context::iterator format(nes_emu::Cpu cpu,
+                                       fmt::format_context &ctx) const {
+    std::string ret = "UNKNOWN";
+    ret = fmt::format("{:4X} ", cpu.prev_pc);
+    ret += fmt::format("{:2X} ", fmt::join(cpu.op_bytes, " "));
+    ret += fmt::format(" {} ", cpu.instruction.name);
+
+    switch (cpu.instruction.addressing_mode) {
+    case nes_emu::AddressingMode::Accumilate: {
+      ret += fmt::format("A{:>28}", " ");
+      break;
+    }
+    case nes_emu::AddressingMode::Implied: {
+      ret += fmt::format("{:>29}", " ");
+      break;
+    }
+    case nes_emu::AddressingMode::Immediate: {
+      ret += fmt::format("#${:X>25}", cpu.read(cpu.op_address));
+      break;
+    }
+    case nes_emu::AddressingMode::ZeroPage: {
+      ret += fmt::format("${:X} = {:X>21}", cpu.op_address,
+                         static_cast<uint16_t>(cpu.op_bytes[1]));
+      break;
+    }
+    case nes_emu::AddressingMode::ZeroPageX: {
+      ret += fmt::format("${:X},X @ {:X} = {:X>14}", cpu.op_address + cpu.x,
+                         cpu.op_address, cpu.read(cpu.op_address + cpu.x));
+      break;
+    }
+    case nes_emu::AddressingMode::ZeroPageY: {
+      ret += fmt::format("${:X},Y @ {:X} = {:X>14}", cpu.op_address + cpu.y,
+                         cpu.op_address, cpu.read(cpu.op_address + cpu.y));
+      break;
+    }
+    case nes_emu::AddressingMode::Absolute: {
+      if ((cpu.instruction.mnemonic == nes_emu::Mnemonic::Jsr) ||
+          (cpu.instruction.mnemonic == nes_emu::Mnemonic::Jmp)) {
+        ret += fmt::format("${:4X}", cpu.op_address);
+      } else {
+        ret += fmt::format("${:4X} = {:2X}", cpu.op_address,
+                           cpu.read(cpu.op_address));
+      }
+      break;
+    }
+    case nes_emu::AddressingMode::AbsoluteX: {
+      ret += fmt::format("${:4X},X @ {:4X} = {:2X}", cpu.op_address - cpu.x,
+                         cpu.op_address, cpu.read(cpu.op_address - cpu.x));
+      break;
+    }
+    case nes_emu::AddressingMode::AbsoluteY: {
+      ret += fmt::format("${:4X},Y @ {:4X} = {:2X}", cpu.op_address - cpu.y,
+                         cpu.op_address, cpu.read(cpu.op_address - cpu.y));
+      break;
+    }
+    case nes_emu::AddressingMode::Indirect: {
+      ret +=
+          fmt::format("(${:4X}) = {:4X}",
+                      cpu.op_bytes[2] << 8 | cpu.op_bytes[1], cpu.op_address);
+      break;
+    }
+    case nes_emu::AddressingMode::IndirectX: {
+      ret += fmt::format("(${:2X}),X = {:4X} @ {:4X} = {:2X}  ",
+                         cpu.op_bytes[1], cpu.op_address + cpu.x,
+                         cpu.op_address, cpu.read(cpu.op_address + cpu.x));
+      break;
+    }
+    case nes_emu::AddressingMode::IndirectY: {
+      ret += fmt::format("(${:2X}),Y = {:4X} @ {:2X} = {:2X}  ",
+                         cpu.op_bytes[1], cpu.op_address - cpu.y,
+                         cpu.op_address, cpu.read(cpu.op_address - cpu.y));
+      break;
+    }
+    case nes_emu::AddressingMode::Relative: {
+      auto val = cpu.read(cpu.prev_pc + 1);
+      auto addr = cpu.prev_pc + 2;
+      ret += fmt::format("${:X>24}", addr + val);
+      break;
+    } break;
+    }
+
+    ret += fmt::format("A:{:X} X:{:X} Y:{:X} P:{:X} SP:{:X} "
+                       "PPU:{:3},{:3} CYC:{:5}",
+                       cpu.a, cpu.x, cpu.y, cpu.status, cpu.stack_p, 0, 0,
+                       cpu.total_cycle);
+
+    return fmt::formatter<string_view>::format(ret, ctx);
+  }
+};
