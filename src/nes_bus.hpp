@@ -15,7 +15,7 @@ struct nes_bus {
 
   nes_bus();
 
-  void insert_cartridge(const std::string &nes_cart);
+  void load_cartridge(const std::string &nes_cart);
 
   void reset();
   void clock();
