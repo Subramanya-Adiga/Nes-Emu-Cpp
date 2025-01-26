@@ -34,3 +34,7 @@ target_sources(
           olcPixelGameEngine.h)
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
+
+if(LINUX)
+  target_link_libraries(nes_emu PRIVATE png GL X11)
+endif()
