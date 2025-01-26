@@ -34,8 +34,6 @@ void Cpu::clock() noexcept {
 
   num_bytes |= pc - prev_pc;
 
-  // fmt::print("{}\n", *this);
-
   auto clk2 = execute(instruction.mnemonic);
 
   step_cycle += (clk1 & clk2);
@@ -112,7 +110,7 @@ Cpu::disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept {
   std::map<uint16_t, std::string> mapLines;
   uint16_t line_addr = 0;
 
-  while (addr <= (uint32_t)addr_stop) {
+  while (addr <= static_cast<uint32_t>(addr_stop)) {
     line_addr = static_cast<uint16_t>(addr);
 
     auto opcode = process_opcode(bus->read(static_cast<uint16_t>(addr)));
@@ -242,21 +240,21 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
   }
   case AddressingMode::ZeroPage: {
     op_bytes[1] = read(pc);
-    op_address = op_bytes[1];
+    op_address = static_cast<uint16_t>(op_bytes[1]);
     pc++;
     op_address &= 0x00FF;
     return 0;
   }
   case AddressingMode::ZeroPageX: {
     op_bytes[1] = read(pc);
-    op_address = op_bytes[1] + x;
+    op_address = static_cast<uint16_t>(op_bytes[1] + x);
     pc++;
     op_address &= 0x00FF;
     return 0;
   }
   case AddressingMode::ZeroPageY: {
     op_bytes[1] = read(pc);
-    op_address = op_bytes[1] + y;
+    op_address = static_cast<uint16_t>(op_bytes[1] + y);
     pc++;
     op_address &= 0x00FF;
     return 0;
@@ -264,11 +262,11 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
   case AddressingMode::Absolute: {
     op_bytes[1] = read(pc);
     op_bytes[2] = read(pc + 1);
-
-    auto lo = op_bytes[1];
-    auto hi = op_bytes[2];
-
     pc += 2;
+
+    auto lo = static_cast<uint16_t>(op_bytes[1]);
+    auto hi = static_cast<uint16_t>(op_bytes[2]);
+
     op_address = static_cast<uint16_t>((hi << 8) | lo);
     return 0;
   }
@@ -276,11 +274,11 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
     op_bytes[1] = read(pc);
     op_bytes[2] = read(pc + 1);
 
-    auto lo = op_bytes[1];
-    auto hi = op_bytes[2];
+    auto lo = static_cast<uint16_t>(op_bytes[1]);
+    auto hi = static_cast<uint16_t>(op_bytes[2]);
 
     pc += 2;
-    op_address = static_cast<uint16_t>((hi << 8) | lo) + x;
+    op_address = static_cast<uint16_t>(((hi << 8) | lo) + x);
     if ((op_address & 0xFF00) != (hi << 8)) {
       return 1;
     }
@@ -290,11 +288,11 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
     op_bytes[1] = read(pc);
     op_bytes[2] = read(pc + 1);
 
-    auto lo = op_bytes[1];
-    auto hi = op_bytes[2];
+    auto lo = static_cast<uint16_t>(op_bytes[1]);
+    auto hi = static_cast<uint16_t>(op_bytes[2]);
 
     pc += 2;
-    op_address = static_cast<uint16_t>((hi << 8) | lo) + y;
+    op_address = static_cast<uint16_t>(((hi << 8) | lo) + y);
     if ((op_address & 0xFF00) != (hi << 8)) {
       return 1;
     }
@@ -304,8 +302,8 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
     op_bytes[1] = read(pc);
     op_bytes[2] = read(pc + 1);
 
-    auto lo = op_bytes[1];
-    auto hi = op_bytes[2];
+    auto lo = static_cast<uint16_t>(op_bytes[1]);
+    auto hi = static_cast<uint16_t>(op_bytes[2]);
     pc += 2;
 
     auto itrm_data = static_cast<uint16_t>((hi << 8) | lo);
@@ -339,10 +337,10 @@ uint8_t Cpu::load_address(AddressingMode mode) noexcept {
 
     auto data = static_cast<uint16_t>(op_bytes[1]);
 
-    auto lo = read(data & 0x00FF);
-    auto hi = read((data + 1) & 0x00FF);
+    auto lo = static_cast<uint16_t>(read(data & 0x00FF));
+    auto hi = static_cast<uint16_t>(read((data + 1) & 0x00FF));
 
-    op_address = static_cast<uint16_t>((hi << 8) | lo) + y;
+    op_address = static_cast<uint16_t>(((hi << 8) | lo) + y);
     if ((op_address & 0xFF00) != (hi << 8)) {
       return 1;
     }
@@ -625,7 +623,7 @@ uint8_t Cpu::execute(Mnemonic mnemonic) noexcept {
       set_nz(a);
     } else {
       auto op = read(op_address);
-      auto res = (op << 1) | get_flag(CpuFlags::Carry);
+      auto res = static_cast<uint8_t>(op << 1 | get_flag(CpuFlags::Carry));
       write(op_address, res);
       set_flag(CpuFlags::Carry, (op >> 7) != 0);
       set_nz(res);
@@ -642,6 +640,7 @@ uint8_t Cpu::execute(Mnemonic mnemonic) noexcept {
       auto op = read(op_address);
       auto res =
           static_cast<uint8_t>((op >> 1) | (get_flag(CpuFlags::Carry) << 7));
+      write(op_address, res);
       set_flag(CpuFlags::Carry, (op & 0x01) != 0);
       set_nz(res);
     }
@@ -670,7 +669,7 @@ uint8_t Cpu::execute(Mnemonic mnemonic) noexcept {
     set_flag(CpuFlags::Zero, (tmp & 0x00FF) == 0);
     set_flag(CpuFlags::Overflow, (((tmp ^ a) & (tmp ^ val)) & 0x0080) != 0);
     set_flag(CpuFlags::Negative, (tmp & 0x0080) != 0);
-    a = tmp & 0x00FF;
+    a = static_cast<uint8_t>(tmp & 0x00FF);
 
     return 1;
   }
