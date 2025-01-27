@@ -31,6 +31,8 @@ target_sources(
           cartridge/cartridge.hpp
           nes_ppu.cpp
           nes_ppu.hpp
+          ppu/ppu_bus.cpp
+          ppu/ppu_bus.hpp
           olcPixelGameEngine.h)
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
