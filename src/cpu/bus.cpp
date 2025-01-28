@@ -9,7 +9,36 @@ uint8_t Bus::read(uint16_t addr) noexcept {
     return memory[addr & 0x07FF];
   }
   if ((addr >= 0x2000) && (addr <= 0x3FFF)) {
-    return ppu.cpu_read(addr & 0x0007);
+    switch (addr & 0x0007) {
+    case 0x0000: {
+      break;
+    }
+    case 0x0001: {
+      break;
+    }
+    case 0x0002: {
+      return ppu.read_from_status_register();
+      break;
+    }
+    case 0x0003: {
+      break;
+    }
+    case 0x0004: {
+      break;
+    }
+    case 0x0005: {
+      break;
+    }
+    case 0x0006: {
+      break;
+    }
+    case 0x0007: {
+      return ppu.read_from_data_register();
+      break;
+    }
+    default:
+      break;
+    }
   }
   if (addr >= 0x4016 && addr <= 0x4017) {
     auto data = (m_controller_state[addr & 0x0001] & 0x80) > 0;
@@ -27,7 +56,39 @@ void Bus::write(uint16_t addr, uint8_t data) noexcept {
     memory[addr & 0x07FF] = data;
   }
   if ((addr >= 0x2000) && (addr <= 0x3FFF)) {
-    ppu.cpu_write(addr & 0x0007, data);
+    switch (addr & 0x0007) {
+    case 0x0000: {
+      ppu.write_to_control_register(data);
+      break;
+    }
+    case 0x0001: {
+      ppu.write_to_mask_register(data);
+      break;
+    }
+    case 0x0002: {
+      break;
+    }
+    case 0x0003: {
+      break;
+    }
+    case 0x0004: {
+      break;
+    }
+    case 0x0005: {
+      ppu.write_to_scroll_register(data);
+      break;
+    }
+    case 0x0006: {
+      ppu.write_to_address_register(data);
+      break;
+    }
+    case 0x0007: {
+      ppu.write_to_data_register(data);
+      break;
+    }
+    default:
+      break;
+    }
   }
   if (addr >= 0x4016 && addr <= 0x4017) {
     m_controller_state[addr & 0x0001] = controllers[addr & 0x0001];

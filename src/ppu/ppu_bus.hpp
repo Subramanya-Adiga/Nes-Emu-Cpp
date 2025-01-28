@@ -6,7 +6,7 @@ namespace nes_emu {
 struct PPUBus {
   Cartridge *cart = nullptr;
 
-  [[nodiscard]] uint8_t read(uint16_t address) noexcept;
+  [[nodiscard]] uint8_t read(uint16_t address) const noexcept;
   void write(uint16_t address, uint8_t data) noexcept;
 
 private:

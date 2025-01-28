@@ -1,14 +1,15 @@
 #pragma once
 #include "../cartridge/cartridge.hpp"
-#include "../nes_ppu.hpp"
+#include "../ppu/ppu.hpp"
 #include "cpu.hpp"
+
 namespace nes_emu {
 
 struct Bus {
   bool nmi{};
   bool irq{};
 
-  nes_ppu ppu;
+  PPU ppu;
   Cpu cpu;
   std::array<uint8_t, 2> controllers{};
 

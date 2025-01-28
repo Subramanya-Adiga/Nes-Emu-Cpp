@@ -274,19 +274,19 @@ public:
       for (int s = 0; s < 4; s++) // For each index
         FillRect(516 + p * (nSwatchSize * 5) + s * nSwatchSize, 340,
                  nSwatchSize, nSwatchSize,
-                 nes.ppu.GetColourFromPaletteRam(p, s));
+                 nes.ppu.get_color_from_palette(p, s));
 
     // Draw selection reticule around selected palette
     DrawRect(516 + nSelectedPalette * (nSwatchSize * 5) - 1, 339,
              (nSwatchSize * 4), nSwatchSize, olc::WHITE);
 
     // Generate Pattern Tables
-    DrawSprite(516, 348, &nes.ppu.GetPatternTable(0, nSelectedPalette));
-    DrawSprite(648, 348, &nes.ppu.GetPatternTable(1, nSelectedPalette));
+    DrawSprite(516, 348, &nes.ppu.get_pattern_table(0, nSelectedPalette));
+    DrawSprite(648, 348, &nes.ppu.get_pattern_table(1, nSelectedPalette));
 
     // Draw rendered output
     // ========================================================
-    DrawSprite(0, 0, &nes.ppu.GetScreen(), 2);
+    DrawSprite(0, 0, &nes.ppu.get_screen(), 2);
     return true;
   }
 };
