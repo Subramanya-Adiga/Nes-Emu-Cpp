@@ -11,12 +11,8 @@ endif()
 target_sources(
   nes_emu
   PRIVATE main.cpp
-          nes_cpu.cpp
-          nes_cpu.hpp
-          nes_bus.hpp
           utils.cpp
           utils.hpp
-          nes_bus.cpp
           cpu/instruction.hpp
           cpu/instruction.cpp
           cpu/cpu.hpp
@@ -29,8 +25,6 @@ target_sources(
           cartridge/mapper/mapper0.hpp
           cartridge/cartridge.cpp
           cartridge/cartridge.hpp
-          nes_ppu.cpp
-          nes_ppu.hpp
           ppu/ppu_bus.cpp
           ppu/ppu_bus.hpp
           ppu/palette.hpp

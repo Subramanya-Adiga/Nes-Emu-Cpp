@@ -1,6 +1,4 @@
 #include "cpu/bus.hpp"
-#include "nes_bus.hpp"
-#include "nes_cpu.hpp"
 #include "utils.hpp"
 
 #define OLC_PGE_APPLICATION
