@@ -11,8 +11,8 @@ endif()
 target_sources(
   nes_emu
   PRIVATE main.cpp
-          utils.cpp
-          utils.hpp
+          utils/utils.cpp
+          utils/utils.hpp
           cpu/instruction.hpp
           cpu/instruction.cpp
           cpu/cpu.hpp
@@ -30,7 +30,7 @@ target_sources(
           ppu/palette.hpp
           ppu/ppu.hpp
           ppu/ppu.cpp
-          olcPixelGameEngine.h)
+          vendor/olcPixelGameEngine.h)
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
 

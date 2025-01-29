@@ -1,8 +1,7 @@
 #include "cpu/bus.hpp"
-#include "utils.hpp"
 
 #define OLC_PGE_APPLICATION
-#include "olcPixelGameEngine.h"
+#include "vendor/olcPixelGameEngine.h"
 
 class Demo_olc6502 : public olc::PixelGameEngine {
   bool bEmulationRun = false;
