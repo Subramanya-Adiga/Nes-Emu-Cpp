@@ -87,8 +87,8 @@ private:
   uint8_t write_enabled = 0;
   uint8_t fine_x{};
   uint8_t ppu_buffered_data{};
-  uint16_t scanlines{};
-  uint16_t cycles{};
+  int16_t scanlines{};
+  int16_t cycles{};
 
   uint8_t bg_next_tile_id = {};
   uint8_t bg_next_tile_attrib = {};

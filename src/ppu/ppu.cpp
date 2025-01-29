@@ -20,27 +20,27 @@ olc::Sprite &PPU::get_screen() const noexcept { return *spr_screen; }
 olc::Sprite &PPU::get_pattern_table(uint8_t index, uint8_t palette) noexcept {
   for (uint16_t nTileY = 0; nTileY < 16; nTileY++) {
     for (uint16_t nTileX = 0; nTileX < 16; nTileX++) {
-      uint16_t nOffset = (nTileY * 256) + (nTileX * 16);
+      auto nOffset = static_cast<uint16_t>((nTileY * 256) + (nTileX * 16));
 
       for (uint16_t row = 0; row < 8; row++) {
-        uint8_t tile_lsb =
-            ppu_bus.read((index * 0x1000) + nOffset + row + 0x0000);
-        uint8_t tile_msb =
-            ppu_bus.read((index * 0x1000) + nOffset + row + 0x0008);
+        auto off = static_cast<uint16_t>((index * 0x1000) + nOffset + row);
+        uint8_t tile_lsb = ppu_bus.read(off);
+        uint8_t tile_msb = ppu_bus.read(off + 8);
         for (uint16_t col = 0; col < 8; col++) {
-          uint8_t pixel = (tile_lsb & 0x01) << 1 | (tile_msb & 0x01);
+          auto pixel =
+              static_cast<uint8_t>((tile_lsb & 0x01) << 1 | (tile_msb & 0x01));
 
           tile_lsb >>= 1;
           tile_msb >>= 1;
 
-          spr_pattern[index]->SetPixel((nTileX * 8) + (7 - col),
-                                       (nTileY * 8) + row,
-                                       get_color_from_palette(palette, pixel));
+          spr_pattern.at(index)->SetPixel(
+              (nTileX * 8) + (7 - col), (nTileY * 8) + row,
+              get_color_from_palette(palette, pixel));
         }
       }
     }
   }
-  return *spr_pattern[index];
+  return *spr_pattern.at(index);
 }
 
 void PPU::write_to_mask_register(uint8_t data) noexcept {
@@ -68,8 +68,8 @@ void PPU::write_to_address_register(uint8_t data) noexcept {
 
 void PPU::write_to_data_register(uint8_t data) noexcept {
   ppu_bus.write(vram_address.reg, data);
-  vram_address.reg +=
-      static_cast<uint16_t>((control_register.increment_mode ? 32 : 1));
+  auto inc = static_cast<uint16_t>((control_register.increment_mode ? 32 : 1));
+  vram_address.reg += inc;
 }
 
 void PPU::write_to_scroll_register(uint8_t data) noexcept {
@@ -97,8 +97,8 @@ uint8_t PPU::read_from_data_register() noexcept {
   if (vram_address.reg >= 0x3F00) {
     data = ppu_buffered_data;
   }
-  vram_address.reg +=
-      static_cast<uint16_t>((control_register.increment_mode ? 32 : 1));
+  auto inc = static_cast<uint16_t>((control_register.increment_mode ? 32 : 1));
+  vram_address.reg += inc;
   return data;
 }
 
@@ -148,10 +148,10 @@ void PPU::clock() noexcept {
                                   (vram_address.nametable_x << 10) |
                                   ((vram_address.coarse_y >> 2) << 3) |
                                   (vram_address.coarse_x >> 2)));
-        if (vram_address.coarse_y & 0x02) {
+        if ((vram_address.coarse_y & 0x02) != 0) {
           bg_next_tile_attrib >>= 4;
         }
-        if (vram_address.coarse_x & 0x02) {
+        if ((vram_address.coarse_x & 0x02) != 0) {
           bg_next_tile_attrib >>= 2;
         }
         bg_next_tile_attrib &= 0x03;
@@ -175,6 +175,8 @@ void PPU::clock() noexcept {
         increment_scroll_x();
         break;
       }
+      default:
+        break;
       }
     }
     if (cycles == 256) {
@@ -234,9 +236,9 @@ void PPU::clock() noexcept {
 
 olc::Pixel PPU::get_color_from_palette(uint8_t palette,
                                        uint8_t pixel) const noexcept {
-  return NesPalette[ppu_bus.read(static_cast<uint16_t>(0x3F00 + (palette << 2) +
-                                                       pixel)) &
-                    0x3F];
+  return NesPalette.at(
+      ppu_bus.read(static_cast<uint16_t>(0x3F00 + (palette << 2) + pixel)) &
+      0x3F);
 }
 
 void PPU::increment_scroll_x() noexcept {

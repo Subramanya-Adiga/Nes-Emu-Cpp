@@ -17,7 +17,8 @@ Checks: "*,
         -misc-no-recursion,
         -cppcoreguidelines-avoid-magic-numbers,
         -readability-magic-numbers,
-        -readability-identifier-length
+        -readability-identifier-length,
+        -cppcoreguidelines-pro-type-union-access,
 "
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
