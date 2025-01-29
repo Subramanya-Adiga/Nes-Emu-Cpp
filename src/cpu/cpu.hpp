@@ -1,5 +1,5 @@
 #pragma once
-#include "instruction.hpp"
+#include <cpu/instruction.hpp>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
 

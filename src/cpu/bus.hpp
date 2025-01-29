@@ -1,6 +1,6 @@
 #pragma once
-#include "../cartridge/cartridge.hpp"
-#include "../ppu/ppu.hpp"
+#include <cartridge/cartridge.hpp>
+#include <ppu/ppu.hpp>
 
 namespace nes_emu {
 

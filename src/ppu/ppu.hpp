@@ -1,5 +1,5 @@
 #pragma once
-#include "ppu_bus.hpp"
+#include <ppu/ppu_bus.hpp>
 
 namespace nes_emu {
 

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "cartridge/cartridge.hpp"
-#include "cpu/bus.hpp"
-#include "cpu/cpu.hpp"
-#include "ppu/ppu.hpp"
+#include <cartridge/cartridge.hpp>
+#include <cpu/bus.hpp>
+#include <cpu/cpu.hpp>
+#include <ppu/ppu.hpp>
+
 
 namespace nes_emu {
 
