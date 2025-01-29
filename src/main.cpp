@@ -1,4 +1,4 @@
-#include "cpu/bus.hpp"
+#include "emulator.hpp"
 
 #define OLC_PGE_APPLICATION
 #include "vendor/olcPixelGameEngine.h"
@@ -10,7 +10,7 @@ public:
   Demo_olc6502() { sAppName = "olc6502 Demonstration"; }
 
   // nes_emu::nes_bus nes;
-  nes_emu::Bus nes;
+  nes_emu::Emulator nes;
   std::map<uint16_t, std::string> mapAsm;
 
   float fResidualTime = 0.0f;
@@ -29,7 +29,7 @@ public:
     for (int row = 0; row < nRows; row++) {
       std::string sOffset = "$" + hex(nAddr, 4) + ":";
       for (int col = 0; col < nColumns; col++) {
-        sOffset += " " + hex(nes.read(nAddr), 2);
+        sOffset += " " + hex(nes.bus.read(nAddr), 2);
         nAddr += 1;
       }
       DrawString(nRamX, nRamY, sOffset);
@@ -157,11 +157,12 @@ public:
     // Insert into NES
     nes.load_cartridge("nestest.nes");
 
+    // Reset NES
+    nes.reset();
+
     // Extract dissassembly
     mapAsm = nes.cpu.disassemble(0x0000, 0xFFFF);
 
-    // Reset NES
-    nes.reset();
     return true;
   }
 
@@ -204,15 +205,15 @@ public:
     Clear(olc::DARK_BLUE);
 
     // Sneaky peek of controller input in next video! ;P
-    nes.controllers[0] = 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::X).bHeld ? 0x80 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::Z).bHeld ? 0x40 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::A).bHeld ? 0x20 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::S).bHeld ? 0x10 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::UP).bHeld ? 0x08 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::DOWN).bHeld ? 0x04 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::LEFT).bHeld ? 0x02 : 0x00;
-    nes.controllers[0] |= GetKey(olc::Key::RIGHT).bHeld ? 0x01 : 0x00;
+    nes.bus.controllers[0] = 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::X).bHeld ? 0x80 : 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::Z).bHeld ? 0x40 : 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::A).bHeld ? 0x20 : 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::S).bHeld ? 0x10 : 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::UP).bHeld ? 0x08 : 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::DOWN).bHeld ? 0x04 : 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::LEFT).bHeld ? 0x02 : 0x00;
+    nes.bus.controllers[0] |= GetKey(olc::Key::RIGHT).bHeld ? 0x01 : 0x00;
 
     if (GetKey(olc::Key::SPACE).bPressed)
       bEmulationRun = !bEmulationRun;
@@ -227,7 +228,7 @@ public:
       else {
         fResidualTime += (1.0f / 60.0f) - fElapsedTime;
         do {
-          nes.clock();
+          nes.run();
         } while (!nes.ppu.frame_complete);
         nes.ppu.frame_complete = false;
       }
@@ -236,13 +237,13 @@ public:
       if (GetKey(olc::Key::C).bPressed) {
         // Clock enough times to execute a whole CPU instruction
         do {
-          nes.clock();
+          nes.run();
         } while (!nes.cpu.complete());
         // CPU clock runs slower than system clock, so it may be
         // complete for additional system clock cycles. Drain
         // those out
         do {
-          nes.clock();
+          nes.run();
         } while (nes.cpu.complete());
       }
 
@@ -250,11 +251,11 @@ public:
       if (GetKey(olc::Key::F).bPressed) {
         // Clock enough times to draw a single frame
         do {
-          nes.clock();
+          nes.run();
         } while (!nes.ppu.frame_complete);
         // Use residual clock cycles to complete current instruction
         do {
-          nes.clock();
+          nes.run();
         } while (!nes.cpu.complete());
         // Reset frame completion flag
         nes.ppu.frame_complete = false;

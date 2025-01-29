@@ -30,6 +30,8 @@ target_sources(
           ppu/palette.hpp
           ppu/ppu.hpp
           ppu/ppu.cpp
+          emulator.cpp
+          emulator.hpp
           vendor/olcPixelGameEngine.h)
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
