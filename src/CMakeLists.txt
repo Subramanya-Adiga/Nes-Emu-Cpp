@@ -27,7 +27,7 @@ target_sources(
          BASE_DIRS
          ${CMAKE_SOURCE_DIR}/src
          FILES
-          emulator.hpp
+         emulator.hpp
          cpu/cpu.hpp
          cpu/bus.hpp
          cpu/instruction.hpp
@@ -41,6 +41,18 @@ target_sources(
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
 
+get_target_property(hdrs nes_emu HEADER_SET)
+message(STATUS "Interface headers: ${hdrs}")
+
+add_executable(nes_olc main.cpp)
+
+target_sources(
+  nes_olc PRIVATE frontends/olc/application.cpp frontends/olc/application.hpp
+                  vendor/olcPixelGameEngine.h)
+
+target_link_libraries(nes_olc PRIVATE project_options project_dependency
+                                      nes_emu)
+
 if(LINUX)
-  target_link_libraries(nes_emu PRIVATE png GL X11)
+  target_link_libraries(nes_olc PRIVATE png GL X11)
 endif()
