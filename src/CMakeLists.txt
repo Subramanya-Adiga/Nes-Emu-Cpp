@@ -20,7 +20,7 @@ target_sources(
           ppu/ppu_bus.cpp
           ppu/ppu.cpp
           emulator.cpp
-          vendor/olcPixelGameEngine.h
+          premitives/sprite.cpp
   PUBLIC emulator.hpp
   PUBLIC FILE_SET
          HEADERS
@@ -38,12 +38,10 @@ target_sources(
          ppu/ppu_bus.hpp
          ppu/palette.hpp
          utils/utils.hpp
-         premitives/color.hpp)
+         premitives/color.hpp
+         premitives/sprite.hpp)
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
-
-get_target_property(hdrs nes_emu HEADER_SET)
-message(STATUS "Interface headers: ${hdrs}")
 
 add_executable(nes_olc main.cpp)
 

@@ -4,11 +4,27 @@ namespace {
 olc::Pixel color_to_pixel(nes_emu::Color color) {
   return {color.red, color.green, color.blue};
 }
+
+void sprite_to_olc_sprite(nes_emu::Sprite *sprite, olc::Sprite *olc_sprite) {
+  for (int x = 0; x < sprite->width; x++) {
+    for (int y = 0; y < sprite->height; y++) {
+      olc_sprite->SetPixel(x, y, color_to_pixel(sprite->get_pixel(x, y)));
+    }
+  }
+}
+
 } // namespace
 
 namespace olc_app {
 
-OlcApplication::OlcApplication() { sAppName = "NES Olc"; }
+OlcApplication::OlcApplication() {
+  sAppName = "NES Olc";
+  spr_screen = std::make_unique<olc::Sprite>(256, 240);
+  spr_pat = {
+      std::make_unique<olc::Sprite>(128, 128),
+      std::make_unique<olc::Sprite>(128, 128),
+  };
+}
 
 bool OlcApplication::OnUserCreate() {
   nes.load_cartridge("nestest.nes");
@@ -87,11 +103,15 @@ bool OlcApplication::OnUserUpdate(float fElapsedTime) {
 
   DrawRect(516 + (nSelectedPalette * (nSwatchSize * 5)) - 1, 339,
            (nSwatchSize * 4), nSwatchSize, olc::WHITE);
+  sprite_to_olc_sprite(&nes.ppu.get_pattern_table(0, nSelectedPalette),
+                       spr_pat.at(0).get());
+  DrawSprite(516, 348, spr_pat.at(0).get());
+  sprite_to_olc_sprite(&nes.ppu.get_pattern_table(1, nSelectedPalette),
+                       spr_pat.at(1).get());
+  DrawSprite(648, 348, spr_pat.at(1).get());
 
-  DrawSprite(516, 348, &nes.ppu.get_pattern_table(0, nSelectedPalette));
-  DrawSprite(648, 348, &nes.ppu.get_pattern_table(1, nSelectedPalette));
-
-  DrawSprite(0, 0, &nes.ppu.get_screen(), 2);
+  sprite_to_olc_sprite(&nes.ppu.get_screen(), spr_screen.get());
+  DrawSprite(0, 0, spr_screen.get(), 2);
   return true;
 }
 

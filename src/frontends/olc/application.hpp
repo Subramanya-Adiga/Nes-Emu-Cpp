@@ -16,6 +16,9 @@ class OlcApplication : public olc::PixelGameEngine {
 
   uint8_t nSelectedPalette = 0x00;
 
+  std::unique_ptr<olc::Sprite> spr_screen{};
+  std::array<std::unique_ptr<olc::Sprite>, 2> spr_pat{};
+
   void DrawRam(int x, int y, uint16_t nAddr, int nRows, int nColumns) noexcept;
   void DrawCpu(int x, int y) noexcept;
   void DrawCode(int x, int y, int nLines) noexcept;

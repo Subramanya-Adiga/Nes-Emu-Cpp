@@ -39,8 +39,7 @@ target_precompile_headers(
   <tuple>
   <variant>
   <range/v3/all.hpp>
-  <fmt/format.h>
-  "src/vendor/olcPixelGameEngine.h")
+  <fmt/format.h>)
 
 find_package(range-v3 REQUIRED)
 find_package(fmt REQUIRED)
