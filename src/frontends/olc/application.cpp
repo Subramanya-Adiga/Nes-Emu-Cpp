@@ -1,5 +1,11 @@
 #include "application.hpp"
 
+namespace {
+olc::Pixel color_to_pixel(nes_emu::Color color) {
+  return {color.red, color.green, color.blue};
+}
+} // namespace
+
 namespace olc_app {
 
 OlcApplication::OlcApplication() { sAppName = "NES Olc"; }
@@ -74,7 +80,8 @@ bool OlcApplication::OnUserUpdate(float fElapsedTime) {
   for (int p = 0; p < 8; p++) {   // For each palette
     for (int s = 0; s < 4; s++) { // For each index
       FillRect(516 + (p * (nSwatchSize * 5)) + (s * nSwatchSize), 340,
-               nSwatchSize, nSwatchSize, nes.ppu.get_color_from_palette(p, s));
+               nSwatchSize, nSwatchSize,
+               color_to_pixel(nes.ppu.get_color_from_palette(p, s)));
     }
   }
 

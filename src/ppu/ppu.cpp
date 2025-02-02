@@ -1,6 +1,12 @@
 #include "ppu.hpp"
 #include "palette.hpp"
 
+namespace {
+olc::Pixel color_to_pixel(nes_emu::Color color) {
+  return {color.red, color.green, color.blue};
+}
+} // namespace
+
 namespace nes_emu {
 
 PPU::PPU() {
@@ -35,7 +41,7 @@ olc::Sprite &PPU::get_pattern_table(uint8_t index, uint8_t palette) noexcept {
 
           spr_pattern.at(index)->SetPixel(
               (nTileX * 8) + (7 - col), (nTileY * 8) + row,
-              get_color_from_palette(palette, pixel));
+              color_to_pixel(get_color_from_palette(palette, pixel)));
         }
       }
     }
@@ -220,8 +226,9 @@ void PPU::clock() noexcept {
     bg_palette = static_cast<uint8_t>((bg_pal1 << 1) | bg_pal0);
   }
 
-  spr_screen->SetPixel(cycles - 1, scanlines,
-                       get_color_from_palette(bg_palette, bg_pixel));
+  spr_screen->SetPixel(
+      cycles - 1, scanlines,
+      color_to_pixel(get_color_from_palette(bg_palette, bg_pixel)));
 
   cycles++;
   if (cycles >= 341) {
@@ -234,8 +241,8 @@ void PPU::clock() noexcept {
   }
 }
 
-olc::Pixel PPU::get_color_from_palette(uint8_t palette,
-                                       uint8_t pixel) const noexcept {
+Color PPU::get_color_from_palette(uint8_t palette,
+                                  uint8_t pixel) const noexcept {
   return NesPalette.at(
       ppu_bus.read(static_cast<uint16_t>(0x3F00 + (palette << 2) + pixel)) &
       0x3F);

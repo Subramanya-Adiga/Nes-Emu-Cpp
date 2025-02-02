@@ -37,7 +37,8 @@ target_sources(
          ppu/ppu.hpp
          ppu/ppu_bus.hpp
          ppu/palette.hpp
-         utils/utils.hpp)
+         utils/utils.hpp
+         premitives/color.hpp)
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
 

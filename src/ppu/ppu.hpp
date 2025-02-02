@@ -1,5 +1,6 @@
 #pragma once
 #include <ppu/ppu_bus.hpp>
+#include <premitives/color.hpp>
 
 namespace nes_emu {
 
@@ -77,8 +78,8 @@ struct PPU {
   [[nodiscard]] olc::Sprite &get_screen() const noexcept;
   [[nodiscard]] olc::Sprite &get_pattern_table(uint8_t index,
                                                uint8_t palette) noexcept;
-  [[nodiscard]] olc::Pixel get_color_from_palette(uint8_t palette,
-                                                  uint8_t pixel) const noexcept;
+  [[nodiscard]] Color get_color_from_palette(uint8_t palette,
+                                             uint8_t pixel) const noexcept;
 
 private:
   std::unique_ptr<olc::Sprite> spr_screen;
