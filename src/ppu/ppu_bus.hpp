@@ -1,5 +1,5 @@
 #pragma once
-#include "../cartridge/cartridge.hpp"
+#include <cartridge/cartridge.hpp>
 
 namespace nes_emu {
 

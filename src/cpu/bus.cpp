@@ -2,8 +2,6 @@
 
 namespace nes_emu {
 
-Bus::Bus() { cpu.bus = this; }
-
 uint8_t Bus::read(uint16_t addr) noexcept {
   if ((addr >= 0x0000) && (addr <= 0x1FFF)) {
     return memory[addr & 0x07FF];
@@ -17,7 +15,7 @@ uint8_t Bus::read(uint16_t addr) noexcept {
       break;
     }
     case 0x0002: {
-      return ppu.read_from_status_register();
+      return ppu->read_from_status_register();
       break;
     }
     case 0x0003: {
@@ -33,7 +31,7 @@ uint8_t Bus::read(uint16_t addr) noexcept {
       break;
     }
     case 0x0007: {
-      return ppu.read_from_data_register();
+      return ppu->read_from_data_register();
       break;
     }
     default:
@@ -46,7 +44,7 @@ uint8_t Bus::read(uint16_t addr) noexcept {
     return data;
   }
   if ((addr >= 0x4020) && (addr <= 0xFFFF)) {
-    return cart->cpu_read(addr);
+    return cartridge->cpu_read(addr);
   }
   return 0;
 }
@@ -58,11 +56,11 @@ void Bus::write(uint16_t addr, uint8_t data) noexcept {
   if ((addr >= 0x2000) && (addr <= 0x3FFF)) {
     switch (addr & 0x0007) {
     case 0x0000: {
-      ppu.write_to_control_register(data);
+      ppu->write_to_control_register(data);
       break;
     }
     case 0x0001: {
-      ppu.write_to_mask_register(data);
+      ppu->write_to_mask_register(data);
       break;
     }
     case 0x0002: {
@@ -75,15 +73,15 @@ void Bus::write(uint16_t addr, uint8_t data) noexcept {
       break;
     }
     case 0x0005: {
-      ppu.write_to_scroll_register(data);
+      ppu->write_to_scroll_register(data);
       break;
     }
     case 0x0006: {
-      ppu.write_to_address_register(data);
+      ppu->write_to_address_register(data);
       break;
     }
     case 0x0007: {
-      ppu.write_to_data_register(data);
+      ppu->write_to_data_register(data);
       break;
     }
     default:
@@ -94,32 +92,8 @@ void Bus::write(uint16_t addr, uint8_t data) noexcept {
     m_controller_state[addr & 0x0001] = controllers[addr & 0x0001];
   }
   if ((addr >= 0x4020) && addr <= 0xFFFF) {
-    cart->cpu_write(addr, data);
+    cartridge->cpu_write(addr, data);
   }
 }
 
-void Bus::load_cartridge(std::string_view path) noexcept {
-  cart = std::make_unique<Cartridge>(path);
-  ppu.connect_to_cartridge(&*cart);
-}
-
-uint32_t Bus::clock_counter() const noexcept { return counter; }
-
-void Bus::clock() noexcept {
-  ppu.clock();
-  if ((counter % 3) == 0) {
-    cpu.clock();
-  }
-  if (ppu.nmi) {
-    ppu.nmi = false;
-    nmi = true;
-  }
-  counter++;
-}
-
-void Bus::reset() noexcept {
-  cpu.reset();
-  ppu.reset();
-  counter = 0;
-}
 } // namespace nes_emu

@@ -4,10 +4,10 @@
 namespace nes_emu {
 
 PPU::PPU() {
-  spr_screen = std::make_unique<olc::Sprite>(256, 240);
+  spr_screen = std::make_unique<Sprite>(256, 240);
   spr_pattern = {
-      std::make_unique<olc::Sprite>(128, 128),
-      std::make_unique<olc::Sprite>(128, 128),
+      std::make_unique<Sprite>(128, 128),
+      std::make_unique<Sprite>(128, 128),
   };
 }
 
@@ -15,9 +15,9 @@ void PPU::connect_to_cartridge(Cartridge *cartridge) noexcept {
   ppu_bus.cart = cartridge;
 }
 
-olc::Sprite &PPU::get_screen() const noexcept { return *spr_screen; }
+Sprite &PPU::get_screen() const noexcept { return *spr_screen; }
 
-olc::Sprite &PPU::get_pattern_table(uint8_t index, uint8_t palette) noexcept {
+Sprite &PPU::get_pattern_table(uint8_t index, uint8_t palette) noexcept {
   for (uint16_t nTileY = 0; nTileY < 16; nTileY++) {
     for (uint16_t nTileX = 0; nTileX < 16; nTileX++) {
       auto nOffset = static_cast<uint16_t>((nTileY * 256) + (nTileX * 16));
@@ -33,7 +33,7 @@ olc::Sprite &PPU::get_pattern_table(uint8_t index, uint8_t palette) noexcept {
           tile_lsb >>= 1;
           tile_msb >>= 1;
 
-          spr_pattern.at(index)->SetPixel(
+          spr_pattern.at(index)->set_pixel(
               (nTileX * 8) + (7 - col), (nTileY * 8) + row,
               get_color_from_palette(palette, pixel));
         }
@@ -220,8 +220,8 @@ void PPU::clock() noexcept {
     bg_palette = static_cast<uint8_t>((bg_pal1 << 1) | bg_pal0);
   }
 
-  spr_screen->SetPixel(cycles - 1, scanlines,
-                       get_color_from_palette(bg_palette, bg_pixel));
+  spr_screen->set_pixel(cycles - 1, scanlines,
+                        get_color_from_palette(bg_palette, bg_pixel));
 
   cycles++;
   if (cycles >= 341) {
@@ -234,8 +234,8 @@ void PPU::clock() noexcept {
   }
 }
 
-olc::Pixel PPU::get_color_from_palette(uint8_t palette,
-                                       uint8_t pixel) const noexcept {
+Color PPU::get_color_from_palette(uint8_t palette,
+                                  uint8_t pixel) const noexcept {
   return NesPalette.at(
       ppu_bus.read(static_cast<uint16_t>(0x3F00 + (palette << 2) + pixel)) &
       0x3F);
