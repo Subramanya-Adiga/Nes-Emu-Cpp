@@ -43,7 +43,7 @@ target_sources(
 
 target_link_libraries(nes_emu PRIVATE project_options project_dependency)
 
-add_executable(nes_olc main.cpp)
+add_executable(nes_olc frontends/olc/main.cpp)
 
 target_sources(
   nes_olc PRIVATE frontends/olc/application.cpp frontends/olc/application.hpp
