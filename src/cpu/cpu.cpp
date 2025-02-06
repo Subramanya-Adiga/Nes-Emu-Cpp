@@ -115,7 +115,7 @@ Cpu::disassemble(uint16_t addr_start, uint16_t addr_stop) const noexcept {
 
     auto opcode = process_opcode(bus->read(static_cast<uint16_t>(addr)));
     addr++;
-    auto sInst = std::format("${:X}: {} ", addr, opcode.name);
+    auto sInst = std::format("${:04X}: {} ", addr - 1, opcode.name);
 
     if (opcode.addressing_mode == AddressingMode::Implied) {
       sInst += std::format(" {}", "{IMP}");
