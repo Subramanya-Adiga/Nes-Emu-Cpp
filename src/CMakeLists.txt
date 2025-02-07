@@ -60,7 +60,9 @@ add_executable(nes_sdl3 frontends/sdl3/main.cpp)
 find_package(SDL3 CONFIG REQUIRED)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/GLAD")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui")
-target_sources(nes_sdl3 PRIVATE frontends/sdl3/application.cpp
-                                frontends/sdl3/application.hpp)
+target_sources(
+  nes_sdl3
+  PRIVATE frontends/sdl3/application.cpp frontends/sdl3/application.hpp
+          frontends/sdl3/ui.cpp frontends/sdl3/ui.hpp)
 target_link_libraries(nes_sdl3 PRIVATE project_options project_dependency
                                        nes_emu SDL3::SDL3 GLAD DearImGui)

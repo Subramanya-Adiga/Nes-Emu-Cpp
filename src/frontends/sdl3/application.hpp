@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <emulator.hpp>
 #include <imgui.h>
 
 namespace sdl3_app {
@@ -11,9 +12,9 @@ public:
   void run();
 
 private:
-  ImGuiIO io;
   bool initialized = false;
   SDL_Window *window = nullptr;
   SDL_GLContext gl_context = nullptr;
+  nes_emu::Emulator nes;
 };
 } // namespace sdl3_app

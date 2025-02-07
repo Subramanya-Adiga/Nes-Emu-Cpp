@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "ui.hpp"
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <glad/glad.h>
@@ -52,29 +53,57 @@ SDL3Application::SDL3Application() {
   }
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  io = ImGui::GetIO();
+  auto &io = ImGui::GetIO();
   (void)io;
   io.ConfigFlags |=
       ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
   io.ConfigFlags |=
       ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
   ImGui::StyleColorsDark();
+
+  auto &styles = ImGui::GetStyle();
+  if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
+    styles.WindowRounding = 0.0F;
+    styles.Colors[ImGuiCol_WindowBg].w = 1.0F;
+  }
 
   ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
   ImGui_ImplOpenGL3_Init("#version 130");
 
   initialized = true;
+  nes.load_cartridge("nestest.nes");
+  nes.reset();
 }
 
 void SDL3Application::run() {
   bool done = false;
   SDL_Event event;
+  auto &io = ImGui::GetIO();
+
+  std::vector<std::pair<uint16_t, std::string_view>> dissassm;
+  auto dissassm_map = nes.cpu.disassemble(0x0000, 0xFFFF);
+  dissassm.reserve(dissassm_map.size());
+  for (auto &&[k, v] : dissassm_map) {
+    dissassm.emplace_back(k, v);
+  }
+
   while (!done) {
     while (SDL_PollEvent(&event)) {
       ImGui_ImplSDL3_ProcessEvent(&event);
       if (event.type == SDL_EVENT_QUIT) {
         done = true;
       }
+      if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+          event.window.windowID == SDL_GetWindowID(window)) {
+        done = true;
+      }
+    }
+    if ((SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) != 0U) {
+      SDL_Delay(10);
+      continue;
     }
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -82,6 +111,8 @@ void SDL3Application::run() {
     ImGui::NewFrame();
 
     ImGui::ShowDemoWindow();
+
+    draw_cpu(&nes.cpu, dissassm);
 
     ImGui::Render();
 
@@ -91,6 +122,14 @@ void SDL3Application::run() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
+      auto *backup_window = SDL_GL_GetCurrentWindow();
+      auto *backup_context = SDL_GL_GetCurrentContext();
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
+      SDL_GL_MakeCurrent(backup_window, backup_context);
+    }
 
     SDL_GL_SwapWindow(window);
   }
