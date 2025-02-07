@@ -59,7 +59,7 @@ uint8_t PPUBus::read(uint16_t address) const noexcept {
 void PPUBus::write(uint16_t address, uint8_t data) noexcept {
   auto wrapped_addr = static_cast<uint16_t>(address & 0x3FFF);
   if ((wrapped_addr >= 0x0000) && (wrapped_addr <= 0x1FFF)) {
-    cart->ppu_write(address, data);
+    cart->ppu_write(wrapped_addr, data);
   }
   if ((wrapped_addr >= 0x2000) && (wrapped_addr <= 0x3EFF)) {
     auto addr = wrapped_addr & 0x0FFF;
