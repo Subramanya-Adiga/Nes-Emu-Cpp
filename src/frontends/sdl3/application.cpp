@@ -3,6 +3,8 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <glad/glad.h>
+#include <ppu/palette.hpp>
+#include <premitives/sprite.hpp>
 
 namespace {
 
@@ -22,11 +24,25 @@ uint32_t create_texture() {
 }
 
 void update_texture(uint32_t tex_id, int32_t width, int32_t height,
-                    uint8_t *data) {
+                    void *data) {
   glBindTexture(GL_TEXTURE_2D, tex_id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB,
                GL_UNSIGNED_BYTE, data);
   glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+uint32_t color_to_surface_rgb(SDL_Surface *surface, nes_emu::Color color) {
+  return SDL_MapSurfaceRGB(surface, color.red, color.green, color.blue);
+}
+
+void update_surface(SDL_Surface *surface, nes_emu::Sprite &data) {
+  for (int x = 0; x < data.width; x++) {
+    for (int y = 0; y < data.height; y++) {
+      SDL_Rect rect = {x, y, 1, 1};
+      SDL_FillSurfaceRect(surface, &rect,
+                          color_to_surface_rgb(surface, data.get_pixel(x, y)));
+    }
+  }
 }
 
 } // namespace
@@ -44,6 +60,13 @@ void SDL3Application::run() {
   bool done = false;
   SDL_Event event;
 
+  bool frame_complete = false;
+  int16_t cycles = 0;
+  int16_t scanlines = 0;
+  nes_emu::Sprite image(256, 240);
+  auto tex_id = create_texture();
+  auto *draw_surface = SDL_CreateSurface(256, 240, SDL_PIXELFORMAT_RGB24);
+
   std::vector<std::pair<uint16_t, std::string_view>> dissassm;
   auto dissassm_map = nes.cpu.disassemble(0x0000, 0xFFFF);
   dissassm.reserve(dissassm_map.size());
@@ -59,14 +82,40 @@ void SDL3Application::run() {
       continue;
     }
 
+    while (!frame_complete) {
+      image.set_pixel(cycles - 1, scanlines,
+                      nes_emu::NesPalette[(rand() % 2) ? 0x30 : 0x3F]);
+      cycles++;
+      if (cycles >= 341) {
+        cycles = 0;
+        scanlines++;
+        if (scanlines >= 261) {
+          scanlines = -1;
+          frame_complete = true;
+          update_surface(draw_surface, image);
+          update_texture(tex_id, draw_surface->w, draw_surface->h,
+                         draw_surface->pixels);
+        }
+      }
+    }
+    frame_complete = false;
+
     frame_start();
 
     ImGui::ShowDemoWindow();
 
     draw_cpu(&nes.cpu, dissassm);
 
+    ImGui::Begin("OpenGL Texture Test");
+    ImGui::Text("Pointer: %X", tex_id);
+    ImGui::Text("Size: %d x %d", draw_surface->w, draw_surface->h);
+    ImGui::Image((ImTextureID)(intptr_t)tex_id,
+                 {(float)draw_surface->w * 2, (float)draw_surface->h * 2});
+    ImGui::End();
+
     frame_flush();
   }
+  SDL_DestroySurface(draw_surface);
 }
 
 bool SDL3Application::process_events(SDL_Event *event) {
