@@ -60,12 +60,17 @@ void SDL3Application::run() {
   bool done = false;
   SDL_Event event;
 
-  bool frame_complete = false;
-  int16_t cycles = 0;
-  int16_t scanlines = 0;
-  nes_emu::Sprite image(256, 240);
   auto tex_id = create_texture();
   auto *draw_surface = SDL_CreateSurface(256, 240, SDL_PIXELFORMAT_RGB24);
+
+  auto pat1_id = create_texture();
+  auto *pat1_srf = SDL_CreateSurface(128, 128, SDL_PIXELFORMAT_RGB24);
+
+  auto pat2_id = create_texture();
+  auto *pat2_srf = SDL_CreateSurface(128, 128, SDL_PIXELFORMAT_RGB24);
+
+  auto pal_id = create_texture();
+  auto *pal_srf = SDL_CreateSurface(128, 128, SDL_PIXELFORMAT_RGB24);
 
   std::vector<std::pair<uint16_t, std::string_view>> dissassm;
   auto dissassm_map = nes.cpu.disassemble(0x0000, 0xFFFF);
@@ -73,6 +78,7 @@ void SDL3Application::run() {
   for (auto &&[k, v] : dissassm_map) {
     dissassm.emplace_back(k, v);
   }
+  int pal_y = 0;
 
   while (!done) {
     done = process_events(&event);
@@ -82,35 +88,49 @@ void SDL3Application::run() {
       continue;
     }
 
-    while (!frame_complete) {
-      image.set_pixel(cycles - 1, scanlines,
-                      nes_emu::NesPalette[(rand() % 2) ? 0x30 : 0x3F]);
-      cycles++;
-      if (cycles >= 341) {
-        cycles = 0;
-        scanlines++;
-        if (scanlines >= 261) {
-          scanlines = -1;
-          frame_complete = true;
-          update_surface(draw_surface, image);
-          update_texture(tex_id, draw_surface->w, draw_surface->h,
-                         draw_surface->pixels);
-        }
-      }
+    while (!nes.ppu.frame_complete) {
+      nes.run();
     }
-    frame_complete = false;
+    nes.ppu.frame_complete = false;
 
     frame_start();
 
-    ImGui::ShowDemoWindow();
+    // ImGui::ShowDemoWindow();
 
     draw_cpu(&nes.cpu, dissassm);
 
     ImGui::Begin("OpenGL Texture Test");
-    ImGui::Text("Pointer: %X", tex_id);
-    ImGui::Text("Size: %d x %d", draw_surface->w, draw_surface->h);
+    update_surface(draw_surface, nes.ppu.get_screen());
+    update_texture(tex_id, draw_surface->w, draw_surface->h,
+                   draw_surface->pixels);
     ImGui::Image((ImTextureID)(intptr_t)tex_id,
                  {(float)draw_surface->w * 2, (float)draw_surface->h * 2});
+    ImGui::End();
+
+    ImGui::Begin("Pattern Window");
+
+    update_surface(pat1_srf, nes.ppu.get_pattern_table(0, pal_idx));
+    update_texture(pat1_id, pat1_srf->w, pat1_srf->h, pat1_srf->pixels);
+    ImGui::Image((ImTextureID)(intptr_t)pat1_id, {256, 256});
+
+    update_surface(pat2_srf, nes.ppu.get_pattern_table(1, pal_idx));
+    update_texture(pat2_id, pat1_srf->w, pat2_srf->h, pat2_srf->pixels);
+    ImGui::Image((ImTextureID)(intptr_t)pat2_id, {256, 256});
+
+    for (int pal = 0; pal < 4; pal++) {
+      for (int col = 0; col < 4; col++) {
+        SDL_Rect rect = {8 + (col * 28), 4 + (pal * 32), 28, 28};
+        SDL_FillSurfaceRect(
+            pal_srf, &rect,
+            color_to_surface_rgb(pal_srf,
+                                 nes.ppu.get_color_from_palette(pal, col)));
+      }
+    }
+
+    update_texture(pal_id, pal_srf->w, pal_srf->h, pal_srf->pixels);
+    ImGui::Image((ImTextureID)(intptr_t)pal_id, {128, 128});
+    ImGui::SameLine();
+    ImGui::Image((ImTextureID)(intptr_t)pal_id, {128, 128});
     ImGui::End();
 
     frame_flush();
@@ -128,6 +148,12 @@ bool SDL3Application::process_events(SDL_Event *event) {
     if (event->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
         event->window.windowID == SDL_GetWindowID(window)) {
       done = true;
+    }
+
+    if (event->type == SDL_EVENT_KEY_DOWN) {
+      if (event->key.scancode == SDL_SCANCODE_P) {
+        (++pal_idx) &= 0x07;
+      }
     }
   }
   return done;

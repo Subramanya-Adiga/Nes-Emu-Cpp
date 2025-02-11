@@ -22,6 +22,7 @@ private:
   SDL_Window *window = nullptr;
   SDL_GLContext gl_context = nullptr;
   nes_emu::Emulator nes;
+  uint8_t pal_idx = 0;
 
   void frame_start();
   void frame_flush();
