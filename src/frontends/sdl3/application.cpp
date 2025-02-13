@@ -1,51 +1,11 @@
 #include "application.hpp"
+#include "draw_helpers.hpp"
 #include "ui.hpp"
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <glad/glad.h>
 #include <ppu/palette.hpp>
 #include <premitives/sprite.hpp>
-
-namespace {
-
-uint32_t create_texture() {
-  uint32_t tex_id{};
-  glGenTextures(1, &tex_id);
-  glBindTexture(GL_TEXTURE_2D, tex_id);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-  glBindTexture(GL_TEXTURE_2D, 0);
-
-  return tex_id;
-}
-
-void update_texture(uint32_t tex_id, int32_t width, int32_t height,
-                    void *data) {
-  glBindTexture(GL_TEXTURE_2D, tex_id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB,
-               GL_UNSIGNED_BYTE, data);
-  glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-uint32_t color_to_surface_rgb(SDL_Surface *surface, nes_emu::Color color) {
-  return SDL_MapSurfaceRGB(surface, color.red, color.green, color.blue);
-}
-
-void update_surface(SDL_Surface *surface, nes_emu::Sprite &data) {
-  for (int x = 0; x < data.width; x++) {
-    for (int y = 0; y < data.height; y++) {
-      SDL_Rect rect = {x, y, 1, 1};
-      SDL_FillSurfaceRect(surface, &rect,
-                          color_to_surface_rgb(surface, data.get_pixel(x, y)));
-    }
-  }
-}
-
-} // namespace
 
 namespace sdl3_app {
 SDL3Application::SDL3Application() {
@@ -71,6 +31,7 @@ void SDL3Application::run() {
 
   auto pal_id = create_texture();
   auto *pal_srf = SDL_CreateSurface(128, 128, SDL_PIXELFORMAT_RGB24);
+  SDL_ClearSurface(pal_srf, 0.556F, 0.629F, 0.830F, 255.0F);
 
   std::vector<std::pair<uint16_t, std::string_view>> dissassm;
   auto dissassm_map = nes.cpu.disassemble(0x0000, 0xFFFF);
@@ -78,7 +39,6 @@ void SDL3Application::run() {
   for (auto &&[k, v] : dissassm_map) {
     dissassm.emplace_back(k, v);
   }
-  int pal_y = 0;
 
   while (!done) {
     done = process_events(&event);
@@ -107,31 +67,8 @@ void SDL3Application::run() {
                  {(float)draw_surface->w * 2, (float)draw_surface->h * 2});
     ImGui::End();
 
-    ImGui::Begin("Pattern Window");
-
-    update_surface(pat1_srf, nes.ppu.get_pattern_table(0, pal_idx));
-    update_texture(pat1_id, pat1_srf->w, pat1_srf->h, pat1_srf->pixels);
-    ImGui::Image((ImTextureID)(intptr_t)pat1_id, {256, 256});
-
-    update_surface(pat2_srf, nes.ppu.get_pattern_table(1, pal_idx));
-    update_texture(pat2_id, pat1_srf->w, pat2_srf->h, pat2_srf->pixels);
-    ImGui::Image((ImTextureID)(intptr_t)pat2_id, {256, 256});
-
-    for (int pal = 0; pal < 4; pal++) {
-      for (int col = 0; col < 4; col++) {
-        SDL_Rect rect = {8 + (col * 28), 4 + (pal * 32), 28, 28};
-        SDL_FillSurfaceRect(
-            pal_srf, &rect,
-            color_to_surface_rgb(pal_srf,
-                                 nes.ppu.get_color_from_palette(pal, col)));
-      }
-    }
-
-    update_texture(pal_id, pal_srf->w, pal_srf->h, pal_srf->pixels);
-    ImGui::Image((ImTextureID)(intptr_t)pal_id, {128, 128});
-    ImGui::SameLine();
-    ImGui::Image((ImTextureID)(intptr_t)pal_id, {128, 128});
-    ImGui::End();
+    draw_pattern_and_palette(&nes.ppu, {pat1_srf, pat2_srf}, {pat1_id, pat2_id},
+                             pal_srf, pal_id, pal_idx);
 
     frame_flush();
   }

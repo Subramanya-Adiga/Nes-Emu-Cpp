@@ -63,6 +63,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui")
 target_sources(
   nes_sdl3
   PRIVATE frontends/sdl3/application.cpp frontends/sdl3/application.hpp
-          frontends/sdl3/ui.cpp frontends/sdl3/ui.hpp)
+          frontends/sdl3/ui.cpp frontends/sdl3/ui.hpp
+          frontends/sdl3/draw_helpers.cpp frontends/sdl3/draw_helpers.hpp)
 target_link_libraries(nes_sdl3 PRIVATE project_options project_dependency
                                        nes_emu SDL3::SDL3 GLAD DearImGui)

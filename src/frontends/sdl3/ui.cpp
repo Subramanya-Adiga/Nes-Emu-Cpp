@@ -1,4 +1,5 @@
 #include "ui.hpp"
+#include "draw_helpers.hpp"
 
 namespace sdl3_app {
 
@@ -81,4 +82,36 @@ void draw_cpu(
 
   ImGui::End();
 }
+
+void draw_pattern_and_palette(nes_emu::PPU *ppu,
+                              std::array<SDL_Surface *, 2> surface,
+                              std::array<uint32_t, 2> tex_id,
+                              SDL_Surface *palette, uint32_t pal_tex_id,
+                              uint8_t pal_idx) {
+  ImGui::Begin("Pattern Window");
+
+  update_surface(surface[0], ppu->get_pattern_table(0, pal_idx));
+  update_texture(tex_id[0], surface[0]->w, surface[0]->h, surface[0]->pixels);
+  ImGui::Image((ImTextureID)(intptr_t)tex_id[0], {256, 256});
+
+  update_surface(surface[1], ppu->get_pattern_table(1, pal_idx));
+  update_texture(tex_id[1], surface[1]->w, surface[1]->h, surface[1]->pixels);
+  ImGui::Image((ImTextureID)(intptr_t)tex_id[1], {256, 256});
+
+  for (int pal = 0; pal < 4; pal++) {
+    for (int col = 0; col < 4; col++) {
+      SDL_Rect rect = {8 + (col * 28), 2 + (pal * 32), 28, 28};
+      SDL_FillSurfaceRect(
+          palette, &rect,
+          color_to_surface_rgb(palette, ppu->get_color_from_palette(pal, col)));
+    }
+  }
+
+  update_texture(pal_tex_id, palette->w, palette->h, palette->pixels);
+  ImGui::Image((ImTextureID)(intptr_t)pal_tex_id, {128, 128});
+  ImGui::SameLine();
+  ImGui::Image((ImTextureID)(intptr_t)pal_tex_id, {128, 128});
+  ImGui::End();
+}
+
 } // namespace sdl3_app
