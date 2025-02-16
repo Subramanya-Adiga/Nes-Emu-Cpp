@@ -87,9 +87,61 @@ bool SDL3Application::process_events(SDL_Event *event) {
       done = true;
     }
 
+    nes.bus.controllers[0] = 0x00;
+
     if (event->type == SDL_EVENT_KEY_DOWN) {
       if (event->key.scancode == SDL_SCANCODE_P) {
         (++pal_idx) &= 0x07;
+      }
+      if (event->key.scancode == SDL_SCANCODE_UP) {
+        nes.bus.controllers[0] |= 0x08;
+      }
+      if (event->key.scancode == SDL_SCANCODE_DOWN) {
+        nes.bus.controllers[0] |= 0x04;
+      }
+      if (event->key.scancode == SDL_SCANCODE_LEFT) {
+        nes.bus.controllers[0] |= 0x02;
+      }
+      if (event->key.scancode == SDL_SCANCODE_RIGHT) {
+        nes.bus.controllers[0] |= 0x01;
+      }
+      if (event->key.scancode == SDL_SCANCODE_A) {
+        nes.bus.controllers[0] |= 0x20;
+      }
+      if (event->key.scancode == SDL_SCANCODE_S) {
+        nes.bus.controllers[0] |= 0x10;
+      }
+      if (event->key.scancode == SDL_SCANCODE_X) {
+        nes.bus.controllers[0] |= 0x80;
+      }
+      if (event->key.scancode == SDL_SCANCODE_Z) {
+        nes.bus.controllers[0] |= 0x40;
+      }
+    }
+    if (event->type == SDL_EVENT_KEY_UP) {
+      if (event->key.scancode == SDL_SCANCODE_UP) {
+        nes.bus.controllers[0] |= 0x00;
+      }
+      if (event->key.scancode == SDL_SCANCODE_DOWN) {
+        nes.bus.controllers[0] |= 0x00;
+      }
+      if (event->key.scancode == SDL_SCANCODE_LEFT) {
+        nes.bus.controllers[0] |= 0x00;
+      }
+      if (event->key.scancode == SDL_SCANCODE_RIGHT) {
+        nes.bus.controllers[0] |= 0x00;
+      }
+      if (event->key.scancode == SDL_SCANCODE_A) {
+        nes.bus.controllers[0] |= 0x00;
+      }
+      if (event->key.scancode == SDL_SCANCODE_S) {
+        nes.bus.controllers[0] |= 0x00;
+      }
+      if (event->key.scancode == SDL_SCANCODE_X) {
+        nes.bus.controllers[0] |= 0x00;
+      }
+      if (event->key.scancode == SDL_SCANCODE_Z) {
+        nes.bus.controllers[0] |= 0x00;
       }
     }
   }
