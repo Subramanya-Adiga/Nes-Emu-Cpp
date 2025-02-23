@@ -69,9 +69,12 @@ struct PPU {
   void write_to_address_register(uint8_t data) noexcept;
   void write_to_data_register(uint8_t data) noexcept;
   void write_to_scroll_register(uint8_t data) noexcept;
+  void write_to_oam_address(uint8_t data) noexcept;
+  void write_to_oam_data(uint8_t data) noexcept;
 
   [[nodiscard]] uint8_t read_from_status_register() noexcept;
   [[nodiscard]] uint8_t read_from_data_register() noexcept;
+  [[nodiscard]] uint8_t read_from_oam_data() noexcept;
 
   void reset() noexcept;
   void clock() noexcept;
@@ -81,6 +84,7 @@ struct PPU {
                                           uint8_t palette) noexcept;
   [[nodiscard]] Color get_color_from_palette(uint8_t palette,
                                              uint8_t pixel) const noexcept;
+  std::array<uint8_t, 256> oam_buffer = {};
 
 private:
   std::unique_ptr<Sprite> spr_screen;
@@ -100,6 +104,10 @@ private:
   uint16_t bg_shifter_pattern_hi = {};
   uint16_t bg_shifter_attrib_lo = {};
   uint16_t bg_shifter_attrib_hi = {};
+
+  uint8_t oam_address = {};
+  uint8_t oam_secondary_count = {};
+  std::array<uint8_t, 8> oam_secondary = {};
 
   PPUBus ppu_bus;
   ControlRegister control_register{};

@@ -84,6 +84,15 @@ void PPU::write_to_scroll_register(uint8_t data) noexcept {
   }
 }
 
+void PPU::write_to_oam_address(uint8_t data) noexcept { oam_address = data; }
+
+void PPU::write_to_oam_data(uint8_t data) noexcept {
+  oam_buffer[oam_address] = data;
+  oam_address++;
+}
+
+uint8_t PPU::read_from_oam_data() noexcept { return oam_buffer[oam_address]; }
+
 uint8_t PPU::read_from_status_register() noexcept {
   auto data = (status_register.reg & 0xE0) | (ppu_buffered_data & 0x1F);
   status_register.vertical_blank = 0;

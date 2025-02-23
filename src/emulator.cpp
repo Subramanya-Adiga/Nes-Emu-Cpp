@@ -15,19 +15,18 @@ void Emulator::load_cartridge(std::string_view path) noexcept {
 
 void Emulator::run() noexcept {
   ppu.clock();
-  if ((system_counter % 3) == 0) {
-    cpu.clock();
+  if ((bus.clock_counter % 3) == 0) {
+    if (!bus.dma_transfer) {
+      cpu.clock();
+    }
   }
-  if (ppu.nmi) {
-    ppu.nmi = false;
-    bus.nmi = true;
-  }
-  system_counter++;
+  bus.clock();
 }
 
 void Emulator::reset() noexcept {
   cpu.reset();
   ppu.reset();
+  bus.reset();
 }
 
 } // namespace nes_emu
