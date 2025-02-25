@@ -39,10 +39,11 @@ uint8_t Bus::read(uint16_t addr) noexcept {
       break;
     }
   }
-  if (addr >= 0x4016 && addr <= 0x4017) {
-    auto data = (m_controller_state[addr & 0x0001] & 0x80) > 0;
-    m_controller_state[addr & 0x0001] <<= 1;
-    return data;
+  if (addr == 0x4016) {
+    return controller->read_status1();
+  }
+  if (addr == 0x4017) {
+    return controller->read_status2();
   }
   if ((addr >= 0x4020) && (addr <= 0xFFFF)) {
     return cartridge->cpu_read(addr);
@@ -96,8 +97,8 @@ void Bus::write(uint16_t addr, uint8_t data) noexcept {
     dma_page = data;
     dma_addr = 0x00;
   }
-  if (addr >= 0x4016 && addr <= 0x4017) {
-    m_controller_state[addr & 0x0001] = controllers[addr & 0x0001];
+  if (addr == 0x4016) {
+    controller->write(data);
   }
   if ((addr >= 0x4020) && addr <= 0xFFFF) {
     cartridge->cpu_write(addr, data);

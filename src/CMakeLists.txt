@@ -19,6 +19,7 @@ target_sources(
           cartridge/cartridge.cpp
           ppu/ppu_bus.cpp
           ppu/ppu.cpp
+          controller/controller.cpp
           emulator.cpp
           premitives/sprite.cpp
   PUBLIC emulator.hpp
@@ -37,6 +38,7 @@ target_sources(
          ppu/ppu.hpp
          ppu/ppu_bus.hpp
          ppu/palette.hpp
+         controller/controller.hpp
          utils/utils.hpp
          premitives/color.hpp
          premitives/sprite.hpp)
