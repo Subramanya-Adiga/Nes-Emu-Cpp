@@ -134,6 +134,9 @@ void Bus::clock() {
         }
       }
     }
+    clock_cpu = true;
+  } else {
+    clock_cpu = false;
   }
   if (ppu->nmi) {
     nmi = true;
