@@ -3,6 +3,7 @@
 #include "ui.hpp"
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_sdl3.h>
+#include <controller/controller.hpp>
 #include <glad/glad.h>
 #include <ppu/palette.hpp>
 #include <premitives/sprite.hpp>
@@ -77,74 +78,70 @@ void SDL3Application::run() {
 
 bool SDL3Application::process_events(SDL_Event *event) {
   bool done = false;
+  nes_emu::Buttons one{};
   while (SDL_PollEvent(event)) {
     ImGui_ImplSDL3_ProcessEvent(event);
-    if (event->type == SDL_EVENT_QUIT) {
+    switch (event->type) {
+    case SDL_EVENT_QUIT: {
       done = true;
+      break;
     }
-    if (event->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-        event->window.windowID == SDL_GetWindowID(window)) {
-      done = true;
+    case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
+      if (event->window.windowID == SDL_GetWindowID(window)) {
+        done = true;
+      }
+      break;
     }
-
-    nes.bus.controllers[0] = 0x00;
-
-    if (event->type == SDL_EVENT_KEY_DOWN) {
-      if (event->key.scancode == SDL_SCANCODE_P) {
-        (++pal_idx) &= 0x07;
+    case SDL_EVENT_KEY_UP:
+    case SDL_EVENT_KEY_DOWN: {
+      switch (event->key.scancode) {
+      case SDL_SCANCODE_P: {
+        if (event->key.down) {
+          (++pal_idx) &= 0x07;
+        }
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_UP) {
-        nes.bus.controllers[0] |= 0x08;
+      case SDL_SCANCODE_A: {
+        one.select = static_cast<uint8_t>(event->key.down);
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_DOWN) {
-        nes.bus.controllers[0] |= 0x04;
+      case SDL_SCANCODE_S: {
+        one.start = static_cast<uint8_t>(event->key.down);
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_LEFT) {
-        nes.bus.controllers[0] |= 0x02;
+      case SDL_SCANCODE_X: {
+        one.a = static_cast<uint8_t>(event->key.down);
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_RIGHT) {
-        nes.bus.controllers[0] |= 0x01;
+      case SDL_SCANCODE_Z: {
+        one.b = static_cast<uint8_t>(event->key.down);
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_A) {
-        nes.bus.controllers[0] |= 0x20;
+      case SDL_SCANCODE_UP: {
+        one.up = static_cast<uint8_t>(event->key.down);
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_S) {
-        nes.bus.controllers[0] |= 0x10;
+      case SDL_SCANCODE_DOWN: {
+        one.down = static_cast<uint8_t>(event->key.down);
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_X) {
-        nes.bus.controllers[0] |= 0x80;
+      case SDL_SCANCODE_LEFT: {
+        one.left = static_cast<uint8_t>(event->key.down);
+        break;
       }
-      if (event->key.scancode == SDL_SCANCODE_Z) {
-        nes.bus.controllers[0] |= 0x40;
+      case SDL_SCANCODE_RIGHT: {
+        one.right = static_cast<uint8_t>(event->key.down);
+        break;
+      }
+      default:
+        break;
       }
     }
-    if (event->type == SDL_EVENT_KEY_UP) {
-      if (event->key.scancode == SDL_SCANCODE_UP) {
-        nes.bus.controllers[0] |= 0x00;
-      }
-      if (event->key.scancode == SDL_SCANCODE_DOWN) {
-        nes.bus.controllers[0] |= 0x00;
-      }
-      if (event->key.scancode == SDL_SCANCODE_LEFT) {
-        nes.bus.controllers[0] |= 0x00;
-      }
-      if (event->key.scancode == SDL_SCANCODE_RIGHT) {
-        nes.bus.controllers[0] |= 0x00;
-      }
-      if (event->key.scancode == SDL_SCANCODE_A) {
-        nes.bus.controllers[0] |= 0x00;
-      }
-      if (event->key.scancode == SDL_SCANCODE_S) {
-        nes.bus.controllers[0] |= 0x00;
-      }
-      if (event->key.scancode == SDL_SCANCODE_X) {
-        nes.bus.controllers[0] |= 0x00;
-      }
-      if (event->key.scancode == SDL_SCANCODE_Z) {
-        nes.bus.controllers[0] |= 0x00;
-      }
+    default:
+      break;
     }
   }
+  nes.set_controller_one_status(one);
   return done;
 }
 
