@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include <controller/controller.hpp>
 
 namespace {
 olc::Pixel color_to_pixel(nes_emu::Color color) {
@@ -35,16 +36,18 @@ bool OlcApplication::OnUserCreate() {
 
 bool OlcApplication::OnUserUpdate(float fElapsedTime) {
   Clear(olc::DARK_BLUE);
+  nes_emu::Buttons one{};
 
-  nes.bus.controllers[0] = 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::X).bHeld ? 0x80 : 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::Z).bHeld ? 0x40 : 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::A).bHeld ? 0x20 : 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::S).bHeld ? 0x10 : 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::UP).bHeld ? 0x08 : 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::DOWN).bHeld ? 0x04 : 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::LEFT).bHeld ? 0x02 : 0x00;
-  nes.bus.controllers[0] |= GetKey(olc::Key::RIGHT).bHeld ? 0x01 : 0x00;
+  one.a = static_cast<uint8_t>(GetKey(olc::Key::X).bHeld);
+  one.b = static_cast<uint8_t>(GetKey(olc::Key::Z).bHeld);
+  one.select = static_cast<uint8_t>(GetKey(olc::Key::A).bHeld);
+  one.start = static_cast<uint8_t>(GetKey(olc::Key::S).bHeld);
+  one.up = static_cast<uint8_t>(GetKey(olc::Key::UP).bHeld);
+  one.down = static_cast<uint8_t>(GetKey(olc::Key::DOWN).bHeld);
+  one.left = static_cast<uint8_t>(GetKey(olc::Key::LEFT).bHeld);
+  one.right = static_cast<uint8_t>(GetKey(olc::Key::RIGHT).bHeld);
+
+  nes.set_controller_one_status(one);
 
   if (GetKey(olc::Key::SPACE).bPressed) {
     bEmulationRun = !bEmulationRun;
