@@ -1,34 +1,19 @@
 #pragma once
 
-#include <SDL3/SDL.h>
+#include "sdl_imgui_gl.hpp"
 #include <emulator.hpp>
-#include <imgui.h>
 
 namespace sdl3_app {
 class SDL3Application {
 public:
   SDL3Application();
-  ~SDL3Application();
-
-  SDL3Application(const SDL3Application &) = delete;
-  SDL3Application(SDL3Application &&) = delete;
-  SDL3Application &operator=(const SDL3Application &) = delete;
-  SDL3Application &operator=(SDL3Application &&) = delete;
-
   void run();
 
 private:
-  bool initialized = false;
-  SDL_Window *window = nullptr;
-  SDL_GLContext gl_context = nullptr;
+  SDLContext ctx;
   nes_emu::Emulator nes;
   uint8_t pal_idx = 0;
 
-  void frame_start();
-  void frame_flush();
-
   bool process_events(SDL_Event *event);
-
-  void init_sdl_opengl_imgui();
 };
 } // namespace sdl3_app
