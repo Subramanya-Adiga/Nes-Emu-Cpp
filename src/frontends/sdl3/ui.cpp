@@ -88,6 +88,10 @@ void draw_pattern_and_palette(nes_emu::PPU *ppu,
                               std::array<uint32_t, 2> tex_id,
                               SDL_Surface *palette, uint32_t pal_tex_id,
                               uint8_t pal_idx) {
+  auto pal_width = 58;
+  auto pal_height = 22;
+  auto padding = 8;
+  auto offset = 12;
   ImGui::Begin("Pattern Window");
 
   update_surface(surface[0], ppu->get_pattern_table(0, pal_idx));
@@ -98,19 +102,26 @@ void draw_pattern_and_palette(nes_emu::PPU *ppu,
   update_texture(tex_id[1], surface[1]->w, surface[1]->h, surface[1]->pixels);
   ImGui::Image((ImTextureID)(intptr_t)tex_id[1], {256, 256});
 
-  for (int pal = 0; pal < 4; pal++) {
+  SDL_ClearSurface(palette, 0, 0, 0, 0);
+  SDL_Rect selection = {(offset - 2),
+                        (offset - 2) + ((pal_height + padding) * pal_idx),
+                        (pal_width * 4) + 4, pal_height + 4};
+  SDL_FillSurfaceRect(palette, &selection, 0xffffff);
+
+  for (int pal = 0; pal < 8; pal++) {
     for (int col = 0; col < 4; col++) {
-      SDL_Rect rect = {8 + (col * 28), 2 + (pal * 32), 28, 28};
+      SDL_Rect rect = {offset + (col * pal_width),
+                       offset + (pal * (pal_height + padding)), pal_width,
+                       pal_height};
       SDL_FillSurfaceRect(
           palette, &rect,
-          color_to_surface_rgb(palette, ppu->get_color_from_palette(pal, col)));
+          color_to_surface_rgb(palette, ppu->get_color_from_palette(
+                                            (uint8_t)pal, (uint8_t)col)));
     }
   }
 
   update_texture(pal_tex_id, palette->w, palette->h, palette->pixels);
-  ImGui::Image((ImTextureID)(intptr_t)pal_tex_id, {128, 128});
-  ImGui::SameLine();
-  ImGui::Image((ImTextureID)(intptr_t)pal_tex_id, {128, 128});
+  ImGui::Image((ImTextureID)(intptr_t)pal_tex_id, {256, 256});
   ImGui::End();
 }
 
