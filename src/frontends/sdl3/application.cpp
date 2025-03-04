@@ -14,7 +14,7 @@ SDL3Application::SDL3Application() {
   init_gl(&ctx);
   init_imgui(&ctx);
 
-  nes.load_cartridge("nestest.nes");
+  nes.load_cartridge("smb.nes");
   nes.reset();
 }
 
@@ -61,12 +61,11 @@ void SDL3Application::run() {
 
     draw_cpu(&nes.cpu, dissassm);
 
-    ImGui::Begin("OpenGL Texture Test");
+    ImGui::Begin("Screen");
     update_surface(draw_surface, nes.ppu.get_screen());
     update_texture(tex_id, draw_surface->w, draw_surface->h,
                    draw_surface->pixels);
-    ImGui::Image((ImTextureID)(intptr_t)tex_id,
-                 {(float)draw_surface->w * 2, (float)draw_surface->h * 2});
+    ImGui::Image((ImTextureID)(intptr_t)tex_id, {(float)810, (float)760});
     ImGui::End();
 
     draw_pattern_and_palette(&nes.ppu, {pat1_srf, pat2_srf}, {pat1_id, pat2_id},
