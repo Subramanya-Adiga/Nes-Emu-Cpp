@@ -23,6 +23,18 @@ SDLContext init_sdl(const char *name, int32_t width, int32_t height) {
   return ret;
 }
 
+void init_audio(SDLContext *ctx) {
+  SDL_AudioSpec spec = {.format = SDL_AUDIO_F32, .channels = 1, .freq = 44100};
+  ctx->audio_stream = SDL_OpenAudioDeviceStream(
+      SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr);
+  if (ctx->audio_stream == nullptr) {
+    fmt::print("SDL Failed To Create Audio Stream {}\n", SDL_GetError());
+  }
+  if (ctx->audio_stream != nullptr) {
+    SDL_ResumeAudioStreamDevice(ctx->audio_stream);
+  }
+}
+
 void init_gl(SDLContext *ctx) {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -85,6 +97,12 @@ void deinit_imgui() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL3_Shutdown();
   ImGui::DestroyContext();
+}
+
+void deinit_audio(SDLContext *ctx) {
+  if (ctx->audio_stream != nullptr) {
+    SDL_DestroyAudioStream(ctx->audio_stream);
+  }
 }
 
 void deinit_sdl(SDLContext *ctx) {

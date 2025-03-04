@@ -10,6 +10,7 @@ namespace sdl3_app {
 SDL3Application::SDL3Application() {
 
   ctx = init_sdl("SDL-Nes", 1480, 840);
+  init_audio(&ctx);
   init_gl(&ctx);
   init_imgui(&ctx);
 
@@ -75,6 +76,7 @@ void SDL3Application::run() {
   }
   SDL_DestroySurface(draw_surface);
   deinit_imgui();
+  deinit_audio(&ctx);
   deinit_sdl(&ctx);
   ctx = {};
 }
