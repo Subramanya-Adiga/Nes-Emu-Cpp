@@ -8,7 +8,6 @@ namespace nes_emu {
 struct Bus {
   bool nmi{};
   bool irq{};
-  bool clock_cpu{};
   bool dma_transfer = false;
   uint32_t clock_counter = 0;
 

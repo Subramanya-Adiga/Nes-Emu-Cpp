@@ -1,5 +1,6 @@
 #include "ppu.hpp"
 #include "palette.hpp"
+#include <fmt/ranges.h>
 
 namespace nes_emu {
 
@@ -89,6 +90,15 @@ void PPU::write_to_oam_address(uint8_t data) noexcept { oam_address = data; }
 void PPU::write_to_oam_data(uint8_t data) noexcept {
   oam_buffer[oam_address] = data;
   oam_address++;
+  if (oam_address == 0x00) {
+    oam =
+        oam_buffer | ranges::views::chunk(4) |
+        ranges::views::transform([](auto &&data) -> ObjectAttributeMemory {
+          return {
+              .y = data[0], .id = data[1], .attribute = data[2], .x = data[3]};
+        }) |
+        ranges::to<std::vector>();
+  }
 }
 
 uint8_t PPU::read_from_oam_data() noexcept { return oam_buffer[oam_address]; }
@@ -313,4 +323,21 @@ void PPU::updata_shifters() noexcept {
     bg_shifter_attrib_hi <<= 1;
   }
 }
+
+bool ObjectAttributeMemory::priority() const {
+  return ((attribute >> 5) & 1) == 1;
+}
+
+bool ObjectAttributeMemory::horizontal() const {
+  return ((attribute >> 6) & 1) == 1;
+}
+
+bool ObjectAttributeMemory::vertical() const {
+  return ((attribute >> 7) & 1) == 1;
+}
+
+uint8_t ObjectAttributeMemory::palette_index() const {
+  return (attribute & 0b11);
+}
+
 } // namespace nes_emu

@@ -16,8 +16,10 @@ void Emulator::load_cartridge(std::string_view path) noexcept {
 
 void Emulator::run() noexcept {
   ppu.clock();
-  if (bus.clock_cpu && !(bus.dma_transfer)) {
-    cpu.clock();
+  if (bus.clock_counter % 3 == 0) {
+    if (!bus.dma_transfer) {
+      cpu.clock();
+    }
   }
   bus.clock();
 }

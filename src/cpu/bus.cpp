@@ -125,7 +125,7 @@ void Bus::clock() {
         if (clock_counter % 2 == 0) {
           dma_data = read(dma_page << 8 | dma_addr);
         } else {
-          ppu->oam_buffer[dma_addr] = dma_data;
+          ppu->write_to_oam_data(dma_data);
           dma_addr++;
           if (dma_addr == 0x00) {
             dma_transfer = false;
@@ -134,9 +134,6 @@ void Bus::clock() {
         }
       }
     }
-    clock_cpu = true;
-  } else {
-    clock_cpu = false;
   }
   if (ppu->nmi) {
     nmi = true;

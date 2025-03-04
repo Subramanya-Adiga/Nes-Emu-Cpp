@@ -55,6 +55,18 @@ union LoopyRegister {
   uint16_t reg{};
 };
 
+struct ObjectAttributeMemory {
+  uint8_t y{};
+  uint8_t id{};
+  uint8_t attribute{};
+  uint8_t x{};
+
+  uint8_t palette_index() const;
+  bool priority() const;
+  bool vertical() const;
+  bool horizontal() const;
+};
+
 struct PPU {
   PPU();
 
@@ -107,7 +119,9 @@ private:
 
   uint8_t oam_address = {};
   uint8_t oam_secondary_count = {};
-  std::array<uint8_t, 8> oam_secondary = {};
+  std::array<uint8_t, 8> oam_secondary_idx = {};
+  std::vector<ObjectAttributeMemory> oam;
+  std::array<ObjectAttributeMemory, 8> oam_secondary = {};
 
   PPUBus ppu_bus;
   ControlRegister control_register{};
